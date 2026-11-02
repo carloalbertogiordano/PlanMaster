@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runHook, type HookRunOptions } from '../../src/cli/hook-runner.js';
+import { runCheck, runHook, type CheckOptions, type HookRunOptions } from '../../src/cli/hook-runner.js';
 import { ConfigError, type WorkspaceInput } from '../../src/core/index.js';
 import { NOW, laneFile } from '../helpers.js';
 import { TEMPLATES } from '../support/templates.js';
@@ -131,5 +131,50 @@ describe('runHook: session-start', () => {
 
   it('stays silent for a chat that is not bound to a lane', () => {
     expect(runHook(options('session-start', payload('SessionStart')))).toEqual(silent);
+  });
+});
+
+describe('runCheck', () => {
+  const check = (overrides: Partial<CheckOptions> = {}): CheckOptions => ({
+    cwd: `${ROOT}/docs`,
+    now: NOW,
+    findRoot: () => ROOT,
+    load: () => ({ files: [stale, broken], configText: JSON.stringify({ people: ['alice'] }) }),
+    ...overrides,
+  });
+
+  it('prints every finding and a summary, with exit code 1 when there are errors', () => {
+    const result = runCheck(check());
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toBe('');
+    const lines = result.stdout.trimEnd().split('\n');
+    expect(lines.some((l) => l.includes('.planmaster/lanes/B.md:7 error PM004'))).toBe(true);
+    expect(lines.some((l) => l.includes('warning PM012'))).toBe(true);
+    expect(lines.at(-1)).toBe('2 errors, 1 warning in 2 lanes, 2 items');
+  });
+
+  it('exits 0 for a project without errors', () => {
+    const clean = { files: [laneFile('A', '- [ ] A-1 Fine')], configText: undefined };
+    const result = runCheck(check({ load: () => clean }));
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trimEnd()).toBe('0 errors, 0 warnings in 1 lane, 1 item');
+  });
+
+  it('looks for the project from the directory it runs in', () => {
+    const seen: string[] = [];
+    runCheck(check({ findRoot: (cwd) => { seen.push(cwd); return ROOT; } }));
+    expect(seen).toEqual([`${ROOT}/docs`]);
+  });
+
+  it('says so, with exit code 2, when there is no PlanMaster directory', () => {
+    const result = runCheck(check({ findRoot: () => null }));
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toContain('.planmaster');
+  });
+
+  it('reports a configuration it cannot read as an error to fix', () => {
+    const result = runCheck(check({ load: () => { throw new ConfigError('config.json is not valid JSON: boom'); } }));
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain('config.json is not valid JSON: boom');
   });
 });

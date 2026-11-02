@@ -1,5 +1,6 @@
 import { configErrorHook, parseHookInput, postEditHook, sessionStartHook, stopHook, type HookInput } from '../app/hooks.js';
-import { ConfigError, analyze, type Analysis, type WorkspaceInput } from '../core/index.js';
+import { ConfigError, analyze, formatFinding, type Analysis, type WorkspaceInput } from '../core/index.js';
+import { summaryLine } from './report.js';
 
 /** Remembers, for each session and lane, the last request made by the stop hook. */
 export interface AskedGuard {
@@ -47,7 +48,7 @@ export function runHook(options: HookRunOptions): RunResult {
   const root = options.findRoot(input.cwd);
   if (root === null) return SILENT;
 
-  const analysis = analyse(options, root);
+  const analysis = analyse((path) => options.load(path), options.now, root);
   if (analysis instanceof ConfigError) {
     return options.event === 'post-edit' ? configErrorHook(input, root, analysis.message) : SILENT;
   }
@@ -62,9 +63,9 @@ function parseInput(stdin: string): HookInput | null {
   }
 }
 
-function analyse(options: HookRunOptions, root: string): Analysis | ConfigError {
+function analyse(load: (root: string) => WorkspaceInput, now: number, root: string): Analysis | ConfigError {
   try {
-    return analyze(options.load(root), options.now);
+    return analyze(load(root), now);
   } catch (error) {
     if (error instanceof ConfigError) return error;
     throw error;
@@ -94,4 +95,28 @@ function stop(options: HookRunOptions, input: HookInput, analysis: Analysis, lan
   const { result, fingerprint } = stopHook(input, analysis, lane, asked);
   if (lane !== undefined && fingerprint !== undefined) options.guard.set(input.sessionId, lane, fingerprint);
   return result;
+}
+
+export interface CheckOptions {
+  /** The directory the command runs in. */
+  cwd: string;
+  now: number;
+  findRoot(cwd: string): string | null;
+  load(root: string): WorkspaceInput;
+}
+
+/**
+ * `check`: for a person, or an assistant that was asked to verify its work.
+ * Prints every finding and a summary on standard output; exit code 1 when
+ * there is at least one error.
+ */
+export function runCheck(options: CheckOptions): RunResult {
+  const root = options.findRoot(options.cwd);
+  if (root === null) return { exitCode: 2, stdout: '', stderr: 'No .planmaster directory was found here or in any parent directory.\n' };
+
+  const analysis = analyse((path) => options.load(path), options.now, root);
+  if (analysis instanceof ConfigError) return { exitCode: 1, stdout: `${analysis.message}\n`, stderr: '' };
+
+  const lines = [...analysis.findings.map(formatFinding), summaryLine(analysis)];
+  return { exitCode: analysis.findings.some((f) => f.severity === 'error') ? 1 : 0, stdout: `${lines.join('\n')}\n`, stderr: '' };
 }

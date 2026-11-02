@@ -136,3 +136,29 @@ describe('the hook program, as Claude Code runs it', () => {
     }
   });
 });
+
+describe('the check mode, as the setup prompt uses it', () => {
+  it('prints the findings and a summary on stdout and exits 1 when the queue has errors', () => {
+    const run = spawnSync(process.execPath, [script, 'check'], { cwd: path.join(workspace, 'docs'), encoding: 'utf8', env: { ...process.env, PLANMASTER_STATE_DIR: stateDir } });
+    expect(run.status).toBe(1);
+    expect(run.stderr).toBe('');
+    expect(run.stdout).toContain('.planmaster/lanes/B.md:7 error PM004');
+    expect(run.stdout.trimEnd().split('\n').at(-1)).toMatch(/^\d+ errors?, \d+ warnings? in 3 lanes, 3 items$/);
+  });
+
+  it('does not wait for input, so it can run where nothing is piped in', () => {
+    const run = spawnSync(process.execPath, [script, 'check'], { cwd: workspace, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, PLANMASTER_STATE_DIR: stateDir }, timeout: 10_000 });
+    expect(run.status).toBe(1);
+  });
+
+  it('exits 2 outside a PlanMaster project', () => {
+    const elsewhere = fs.mkdtempSync(path.join(os.tmpdir(), 'planmaster-check-'));
+    try {
+      const run = spawnSync(process.execPath, [script, 'check'], { cwd: elsewhere, encoding: 'utf8' });
+      expect(run.status).toBe(2);
+      expect(run.stderr).toContain('.planmaster');
+    } finally {
+      fs.rmSync(elsewhere, { recursive: true, force: true });
+    }
+  });
+});

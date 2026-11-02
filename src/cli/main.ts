@@ -5,6 +5,7 @@ import { analyze, type Analysis } from '../core/model.js';
 import { parseTimestamp } from '../core/time.js';
 import type { WorkspaceInput } from '../core/types.js';
 import { loadWorkspace } from '../node/load.js';
+import { summaryLine } from './report.js';
 
 const USAGE = `Usage: planmaster-lint <workspace-or-.planmaster-dir> [options]
 
@@ -78,20 +79,13 @@ function applyMtimeOverrides(input: WorkspaceInput, overrides: Map<string, numbe
   }
 }
 
-function plural(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? '' : 's'}`;
-}
-
 function printReport(analysis: Analysis, json: boolean): void {
   if (json) {
     process.stdout.write(`${JSON.stringify(analysis.findings, null, 2)}\n`);
     return;
   }
   for (const f of analysis.findings) process.stderr.write(`${formatFinding(f)}\n`);
-  const errors = analysis.findings.filter((f) => f.severity === 'error').length;
-  const warnings = analysis.findings.length - errors;
-  const items = analysis.lanes.reduce((n, lane) => n + lane.items.length, 0);
-  process.stdout.write(`${plural(errors, 'error')}, ${plural(warnings, 'warning')} in ${plural(analysis.lanes.length, 'lane')}, ${plural(items, 'item')}\n`);
+  process.stdout.write(`${summaryLine(analysis)}\n`);
 }
 
 function check(options: Options): number {
