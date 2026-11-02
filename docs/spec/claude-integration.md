@@ -96,7 +96,12 @@ If the passive checks are not enough, the lint CLI can run in a hook:
 - A hook that runs after tool calls which modify a file under `.planmaster/lanes/` runs the linter on that file and, on errors, returns the findings to Claude so it corrects them in the same turn.
 - A hook that runs when Claude finishes a turn checks the lane's file and reports a stale `[~]` item.
 
-Hooks are opt-in and configured by the user. They are specified here only so that the CLI's interface (exit code non-zero on errors, findings on stderr in a stable `file:line code message` form) is designed for them from the start.
+Hooks are opt-in and configured by the user. They are specified here only so that the CLI's interface is designed for them from the start:
+
+- Findings go to stderr, one per line, in the stable form `file:line severity code message`, for example `.planmaster/lanes/B.md:12 error PM004 B-14 is blocked but has no wait: naming a person or an item ID`. Paths are relative to the workspace root.
+- A one-line summary goes to stdout.
+- Exit code `0` when there are no errors (warnings allowed), `1` when there is at least one error, `2` for usage or configuration errors.
+- `--json` prints the findings as a JSON array on stdout instead.
 
 ## 8. Migration of an existing document
 

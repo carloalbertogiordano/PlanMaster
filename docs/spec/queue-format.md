@@ -193,13 +193,15 @@ Archiving is performed by the session that owns the lane, on request (see the ar
 | `archiveAfterDays` | integer | `14` | Age after which closed subtrees are eligible for archiving. |
 | `lanesDir` | string | `.planmaster/lanes` | Directory of lane files, relative to the workspace root. |
 
+A `config.json` that is not valid JSON, or whose keys have the wrong type, is a configuration error reported by the tools. Defaults are not silently substituted for a broken file. Unknown keys are ignored.
+
 ## 12. Lint rules
 
 The linter is a pure function of the lane files, the archive files, `config.json`, the file modification times and the current time. Each finding has a code, a severity, a file, a line and a message.
 
 | Code | Severity | Rule |
 |---|---|---|
-| PM001 | error | Malformed item line: bad marker, bad ID, odd indentation, a child more than one level deeper than its parent, or a repeated token key. |
+| PM001 | error | Malformed item line: bad marker, bad ID, odd indentation, a child more than one level deeper than its parent, an empty title, or a repeated token key. |
 | PM002 | error | Duplicate ID in the workspace, archive included. |
 | PM003 | error | ID prefix differs from the lane ID. |
 | PM004 | error | `[!]` item without `wait:`. |
@@ -207,18 +209,19 @@ The linter is a pure function of the lane files, the archive files, `config.json
 | PM006 | error | `[~]` or `[!]` item without `since:`. |
 | PM007 | error | `wait:` target is neither a configured person nor an existing item ID. |
 | PM008 | error | More than one top-level `[~]` item in a lane. |
-| PM009 | error | More than one `[~]` item among the same siblings. |
+| PM009 | error | More than one `[~]` item among the children of the same parent. (Top-level items are covered by PM008.) |
 | PM010 | error | Closed parent with an open child. |
 | PM011 | warning | Open `[ ]` parent with a `[~]` child. |
 | PM012 | warning | Stale: a top-level `[~]` item whose `since:` is older than `staleAfterMinutes` **and** whose file has not been modified for longer than `staleAfterMinutes`. |
 | PM013 | warning | Token present where the state does not allow it (section 6.2). |
 | PM014 | error | Timestamp does not match `YYYY-MM-DDTHH:MM` or is not a real date. |
-| PM015 | warning | Timestamp is in the future, or later than the file's modification time plus five minutes. A real edit cannot record a time after it happened, so this usually means the time was guessed. |
+| PM015 | warning | Timestamp is more than five minutes in the future, or more than five minutes later than the file's modification time. A real edit cannot record a time after it happened, so this usually means the time was guessed. Not checked when the modification time is unknown. |
 | PM016 | warning | Line is not blank, not a comment and not an item. |
 | PM017 | error | Front matter missing, malformed, wrong `format`, missing keys, or `lane` different from the file name. Unknown keys are a warning. |
 | PM018 | warning | `wait:` points to an item that is already closed; the block is probably resolved. |
 | PM019 | error | Nesting deeper than level 3. |
 | PM020 | warning | Title longer than 120 characters. Long context belongs in a document linked with `ref:`. |
+| PM021 | error | A lane or archive file could not be read, or is larger than 1 MB and was not parsed. |
 
 ## 13. Versioning
 
