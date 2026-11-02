@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { ConfigError } from '../core/config.js';
+import { formatFinding } from '../core/findings.js';
 import { analyze, type Analysis } from '../core/model.js';
 import { parseTimestamp } from '../core/time.js';
-import type { Finding, WorkspaceInput } from '../core/types.js';
+import type { WorkspaceInput } from '../core/types.js';
 import { loadWorkspace } from '../node/load.js';
 
 const USAGE = `Usage: planmaster-lint <workspace-or-.planmaster-dir> [options]
@@ -75,10 +76,6 @@ function applyMtimeOverrides(input: WorkspaceInput, overrides: Map<string, numbe
     const override = file.kind === 'lane' ? overrides.get(lane) : undefined;
     if (override !== undefined) file.mtimeMs = override;
   }
-}
-
-function formatFinding(f: Finding): string {
-  return `${f.file}:${f.line} ${f.severity} ${f.code} ${f.message}`;
 }
 
 function plural(n: number, word: string): string {

@@ -27,3 +27,4 @@ export { buildWebviewHtml, type WebviewHtmlInput } from './webview-html.js';
 export * from './commands/index.js';
 export { loadTemplates, extractTemplate, fillTemplate, type PromptSources, type Templates } from './prompts.js';
 export { installBlock, type InstallResult } from './claude-md.js';
+export * from './hooks.js';

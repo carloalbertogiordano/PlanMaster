@@ -41,3 +41,8 @@ export function finding(code: string, at: Location, message: string, options: Fi
 export function sortFindings(findings: Finding[]): Finding[] {
   return findings.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.code.localeCompare(b.code));
 }
+
+/** `file:line severity code message`: the form shared by the command-line checker and the hooks. */
+export function formatFinding(f: Finding): string {
+  return `${f.file}:${f.line} ${f.severity} ${f.code} ${f.message}`;
+}
