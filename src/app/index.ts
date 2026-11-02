@@ -29,3 +29,4 @@ export { loadTemplates, extractTemplate, fillTemplate, type PromptSources, type 
 export { installBlock, type InstallResult } from './claude-md.js';
 export * from './hooks.js';
 export * from './hook-settings.js';
+export * from './setup.js';
