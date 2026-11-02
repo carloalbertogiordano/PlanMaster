@@ -108,6 +108,53 @@ const tests = [
     await until('the queue to recover', () => api.states()[0].kind === 'ok');
   }],
 
+  ['opens the queue view and the page really draws the lanes', async (api) => {
+    await vscode.commands.executeCommand('planmaster.queue.focus');
+    await until('the page to draw five lanes', () => api.queueView().drawnLanes === 5, 30000);
+    const view = api.queueView();
+    assert.equal(view.resolved, true);
+    assert.equal(view.folders.length, 1);
+    assert.deepEqual(view.folders[0].lanes.map((l) => l.lane), ['A', 'B', 'C', 'D', 'E']);
+  }],
+
+  ['opens an item in the editor when the view asks for it', async (api) => {
+    const folder = api.states()[0].folder;
+    assert.equal(await api.handleQueueMessage({ type: 'reveal', folder, path: laneD, line: 7 }), true);
+    const editor = vscode.window.activeTextEditor;
+    assert.equal(editor.document.uri.fsPath, fileUri(laneD).fsPath);
+    assert.equal(editor.selection.active.line, 6);
+  }],
+
+  ['refuses to open files that were not read as lanes', async (api) => {
+    const folder = api.states()[0].folder;
+    const before = vscode.window.activeTextEditor.document.uri.toString();
+    for (const bad of ['../outside.txt', '.planmaster/lanes/Z.md', config, '/etc/passwd']) {
+      assert.equal(await api.handleQueueMessage({ type: 'reveal', folder, path: bad, line: 1 }), false, bad);
+    }
+    assert.equal(await api.handleQueueMessage({ type: 'reveal', folder: 'nope', path: laneD, line: 1 }), false);
+    assert.equal(await api.handleQueueMessage({ type: 'open', url: 'file:///etc/passwd' }), false);
+    assert.equal(vscode.window.activeTextEditor.document.uri.toString(), before);
+  }],
+
+  ['marks the what\u2019s-new feed as seen', async (api) => {
+    const folder = api.states()[0].folder;
+    const before = api.queueView().folders[0].news;
+    assert.equal(before.sinceLabel, 'the beginning');
+    assert.ok(before.events.length > 0);
+    assert.equal(await api.handleQueueMessage({ type: 'markSeen', folder }), true);
+    await until('the feed to move on', () => api.queueView().folders[0].news.sinceLabel !== 'the beginning');
+    assert.ok(api.queueView().folders[0].news.events.length < before.events.length);
+  }],
+
+  ['shows a broken config.json in the queue view and recovers', async (api) => {
+    const file = fileUri(config).fsPath;
+    const original = await fs.readFile(file, 'utf8');
+    await fs.writeFile(file, '{ nope');
+    await until('the view to carry the error', () => typeof api.queueView().folders[0]?.error === 'string');
+    await fs.writeFile(file, original);
+    await until('the view to recover', () => api.queueView().folders[0]?.error === undefined && api.queueView().folders[0]?.lanes.length === 5);
+  }],
+
   ['runs the re-check command', async () => {
     await vscode.commands.executeCommand('planmaster.runLint');
   }],

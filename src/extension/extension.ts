@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
+import type { QueueViewModel } from '../app/index.js';
 import { QueueDefinitionProvider, QueueHoverProvider, type AnalysisLookup } from './providers.js';
 import { WorkspaceInstance } from './instance.js';
+import { QueueViewProvider } from './queue-view-provider.js';
 import { relativePath, uriOf } from './uris.js';
 
 const LANGUAGE = 'planmaster-lane';
@@ -8,16 +10,34 @@ const LANGUAGE = 'planmaster-lane';
 /** A read-only summary of what the extension currently shows, for tests and other extensions. */
 export interface PlanMasterApi {
   states(): { folder: string; kind: string; statusText?: string }[];
+  /** What the queue view was last sent. */
+  queueView(): { resolved: boolean; folders: QueueViewModel[]; drawnLanes: number | undefined };
+  /** Delivers a message as if the queue view had sent it. Returns whether it was accepted. */
+  handleQueueMessage(raw: unknown): Promise<boolean>;
 }
 
 class InstanceManager implements vscode.Disposable {
   private readonly instances = new Map<string, WorkspaceInstance>();
-  private readonly extensionUri: vscode.Uri;
+  private readonly context: vscode.ExtensionContext;
   private readonly output: vscode.OutputChannel;
+  private onChange: () => void = () => undefined;
 
-  constructor(extensionUri: vscode.Uri, output: vscode.OutputChannel) {
-    this.extensionUri = extensionUri;
+  constructor(context: vscode.ExtensionContext, output: vscode.OutputChannel) {
+    this.context = context;
     this.output = output;
+  }
+
+  /** Called whenever any folder's queue view model may have changed. */
+  setChangeListener(listener: () => void): void {
+    this.onChange = listener;
+  }
+
+  all(): readonly WorkspaceInstance[] {
+    return [...this.instances.values()];
+  }
+
+  async markSeen(): Promise<void> {
+    await Promise.all(this.all().map((instance) => instance.markSeen()));
   }
 
   /** Starts an instance for every folder that has a `.planmaster` directory and stops the ones for removed folders. */
@@ -32,7 +52,13 @@ class InstanceManager implements vscode.Disposable {
     for (const folder of folders) {
       const key = folder.uri.toString();
       if (this.instances.has(key) || !(await hasPlanMaster(folder))) continue;
-      const instance = new WorkspaceInstance(folder, this.extensionUri, this.output, folders.length > 1);
+      const instance = new WorkspaceInstance(folder, {
+        extensionUri: this.context.extensionUri,
+        output: this.output,
+        storage: this.context.workspaceState,
+        multiRoot: folders.length > 1,
+      });
+      instance.onModelChange(() => { this.onChange(); });
       this.instances.set(key, instance);
       await instance.start();
     }
@@ -54,8 +80,10 @@ class InstanceManager implements vscode.Disposable {
     return undefined;
   };
 
-  api(): PlanMasterApi {
+  api(provider: QueueViewProvider): PlanMasterApi {
     return {
+      queueView: () => provider.lastPosted,
+      handleQueueMessage: (raw) => provider.handleMessage(raw),
       states: () => [...this.instances.values()].map((instance) => {
         const state = instance.state;
         const statusText = state?.kind === 'ok' ? state.status.text : undefined;
@@ -81,7 +109,9 @@ async function hasPlanMaster(folder: vscode.WorkspaceFolder): Promise<boolean> {
 
 export async function activate(context: vscode.ExtensionContext): Promise<PlanMasterApi> {
   const output = vscode.window.createOutputChannel('PlanMaster');
-  const manager = new InstanceManager(context.extensionUri, output);
+  const manager = new InstanceManager(context, output);
+  const provider = new QueueViewProvider(context.extensionUri, () => manager.all());
+  manager.setChangeListener(() => { provider.push(); });
   const selector: vscode.DocumentSelector = { language: LANGUAGE };
 
   context.subscriptions.push(
@@ -89,14 +119,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<PlanMa
     manager,
     vscode.languages.registerHoverProvider(selector, new QueueHoverProvider(manager.lookup)),
     vscode.languages.registerDefinitionProvider(selector, new QueueDefinitionProvider(manager.lookup)),
+    vscode.window.registerWebviewViewProvider(QueueViewProvider.viewType, provider),
     vscode.commands.registerCommand('planmaster.runLint', () => manager.reloadAll()),
+    vscode.commands.registerCommand('planmaster.markSeen', () => manager.markSeen()),
     vscode.workspace.onDidChangeWorkspaceFolders(() => { void manager.syncFolders(); }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('planmaster')) manager.refreshViews();
     }),
   );
   await manager.syncFolders();
-  return manager.api();
+  return manager.api(provider);
 }
 
 export function deactivate(): void {

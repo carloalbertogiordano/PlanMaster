@@ -115,6 +115,14 @@ Lists events newer than the **last seen** time, newest first, with "Mark as seen
 
 The tab badge shows the number of events. When there are none, the tab says "Nothing new since <time>."
 
+### 5.4 Implementation notes
+
+- The view model (`app/queue-view-model`) is plain data built from an analysis and contains the text exactly as written in the files. All escaping is the renderer's job, which only ever sets text content.
+- The renderer (`webview/render`) is tested with a simulated DOM, including titles that contain markup. It keeps keyboard focus on the same control across redraws and follows the ARIA tab pattern, with arrow keys moving between tabs.
+- Which lanes are expanded and which tab is open are kept in the view's own state and survive the view being hidden.
+- After each draw the view reports how many lanes it showed. This lets the extension tests prove that the page really ran, not only that data was sent.
+- A folder whose `config.json` is invalid shows the error message in place of its queue.
+
 ## 6. Derived data
 
 ### 6.1 Focus
@@ -188,6 +196,8 @@ State, in `workspaceState`: the last-seen time and the expanded/collapsed state 
 - No network access of any kind. No telemetry.
 - The extension reads only inside the workspace. It writes only the files named in section 9, only after confirmation, and never outside the workspace.
 - Webview: `default-src 'none'`, scripts only with a nonce, styles from the extension, no remote resources. All text from lane files is inserted with text APIs (never `innerHTML`). `ref:` values are shown as text and are not turned into links in version 1.
+- The view and the extension exchange a small set of messages. The extension treats everything from the view as untrusted: only the known message shapes are accepted, strings and numbers are bounded, and a request to open a file is honored only for a file the extension has itself read as a lane or archive file, in the named workspace folder. The view ignores messages whose origin is not its own.
+- The policy source the editor provides is checked against the forms the editor is known to use before it is put into the policy.
 - Lane file content never influences extension behavior beyond the displayed data. There is no evaluation of file content.
 - Reading is bounded: files over 1 MB are not parsed and are reported as a finding.
 
@@ -212,8 +222,8 @@ State, in `workspaceState`: the last-seen time and the expanded/collapsed state 
 |---|---|
 | **0.1** | `core` (parser, model, lint, events) with full tests; `cli`; demo workspace as fixture. |
 | **0.2** (done) | Extension shell: watcher, diagnostics, status bar, decorations, grammar, go to definition and hover, and the `Re-Check All Lanes` command. Tested inside VS Code. |
-| **0.3** | Queue view with the three tabs. |
-| **0.4** | Commands: init, install instructions, prompt commands, mark seen, reveal. |
+| **0.3** (done) | Queue view with the three tabs, tested inside VS Code: the page draws under the content security policy, reveals items, marks the feed as seen and shows a configuration error. Also ships the `Mark Everything as Seen` command. |
+| **0.4** | Commands: init, install instructions, prompt commands, reveal item. |
 | **0.5** | Hook support: lint CLI usable from a Claude Code hook (see claude-integration section 7), packaging, marketplace metadata. |
 
 ## 15. Open questions

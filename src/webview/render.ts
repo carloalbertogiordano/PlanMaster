@@ -2,7 +2,7 @@ import type { BlockedGroupModel, LaneBlockModel, QueueViewModel } from '../app/i
 import { chipElement, el } from './dom.js';
 import { renderEvent, renderRow, type Reveal } from './rows.js';
 
-export type TabId = 'stack' | 'blocked' | 'news';
+type TabId = 'stack' | 'blocked' | 'news';
 
 export interface ViewState {
   tab: TabId;

@@ -82,6 +82,11 @@
         "command": "planmaster.runLint",
         "title": "Re-Check All Lanes",
         "category": "PlanMaster"
+      },
+      {
+        "command": "planmaster.markSeen",
+        "title": "Mark Everything as Seen",
+        "category": "PlanMaster"
       }
     ],
     "configuration": {
@@ -98,6 +103,24 @@
           "description": "Publish queue problems to the Problems panel."
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "planmaster",
+          "title": "PlanMaster",
+          "icon": "media/queue.svg"
+        }
+      ]
+    },
+    "views": {
+      "planmaster": [
+        {
+          "type": "webview",
+          "id": "planmaster.queue",
+          "name": "Queue"
+        }
+      ]
     }
   }
 }

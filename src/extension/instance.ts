@@ -1,9 +1,17 @@
 import * as vscode from 'vscode';
-import { CONFIG_PATH, QueueController, classifyPath, trimTrailingSlashes, type ViewState } from '../app/index.js';
+import { CONFIG_PATH, QueueController, SeenTracker, buildQueueViewModel, classifyPath, errorViewModel, isKnownPath, trimTrailingSlashes, type QueueViewModel, type ViewState } from '../app/index.js';
 import { DEFAULT_CONFIG, type Analysis } from '../core/index.js';
-import { relativePath } from './uris.js';
+import { relativePath, uriOf } from './uris.js';
 import { DecorationsView, DiagnosticsView, StatusView, type View } from './views.js';
 import { VsCodeWorkspaceSource } from './workspace-source.js';
+
+export interface InstanceServices {
+  extensionUri: vscode.Uri;
+  output: vscode.OutputChannel;
+  /** Where the last "seen" time is kept. */
+  storage: vscode.Memento;
+  multiRoot: boolean;
+}
 
 /** One workspace folder that contains a `.planmaster` directory: its controller, views and file watchers. */
 export class WorkspaceInstance implements vscode.Disposable {
@@ -11,11 +19,15 @@ export class WorkspaceInstance implements vscode.Disposable {
   private readonly controller: QueueController;
   private readonly views: View[];
   private readonly watchers: vscode.Disposable[] = [];
+  private readonly seen: SeenTracker;
+  private readonly changeListeners: (() => void)[] = [];
   private lanesDir = DEFAULT_CONFIG.lanesDir;
   private lanesWatcher: vscode.Disposable | undefined;
 
-  constructor(folder: vscode.WorkspaceFolder, extensionUri: vscode.Uri, output: vscode.OutputChannel, multiRoot: boolean) {
+  constructor(folder: vscode.WorkspaceFolder, services: InstanceServices) {
+    const { extensionUri, output, storage, multiRoot } = services;
     this.folder = folder;
+    this.seen = new SeenTracker(storage, `planmaster.lastSeen:${folder.uri.toString()}`);
     this.views = [
       new DiagnosticsView(folder.uri, folder.name),
       new StatusView(multiRoot ? `${folder.name}: ` : ''),
@@ -43,6 +55,35 @@ export class WorkspaceInstance implements vscode.Disposable {
     this.controller.refresh();
   }
 
+  /** Calls `listener` whenever what the queue view shows may have changed. */
+  onModelChange(listener: () => void): void {
+    this.changeListeners.push(listener);
+  }
+
+  /** What the queue view shows for this folder, or undefined before the first read. */
+  get viewModel(): QueueViewModel | undefined {
+    const state = this.controller.state;
+    if (state === undefined) return undefined;
+    if (state.kind === 'config-error') return errorViewModel(this.folder.name, state.message);
+    return buildQueueViewModel(state.analysis, { folder: this.folder.name, lastSeen: this.seen.value });
+  }
+
+  async markSeen(): Promise<void> {
+    await this.seen.markSeen(Date.now());
+    this.notifyModelChange();
+  }
+
+  /** Whether `path` is a file this instance has read, so that it may be opened on request. */
+  knows(path: string): boolean {
+    const analysis = this.analysis;
+    return analysis !== undefined && isKnownPath(analysis, path);
+  }
+
+  async reveal(path: string, line: number): Promise<void> {
+    const position = new vscode.Position(line - 1, 0);
+    await vscode.window.showTextDocument(uriOf(this.folder.uri, path), { selection: new vscode.Range(position, position), preview: false });
+  }
+
   get state(): ViewState | undefined {
     return this.controller.state;
   }
@@ -59,8 +100,13 @@ export class WorkspaceInstance implements vscode.Disposable {
     this.lanesWatcher?.dispose();
   }
 
+  private notifyModelChange(): void {
+    for (const listener of this.changeListeners) listener();
+  }
+
   private onUpdate(state: ViewState): void {
     for (const view of this.views) view.apply(state);
+    this.notifyModelChange();
     if (state.kind === 'ok' && state.analysis.config.lanesDir !== this.lanesDir) {
       this.lanesDir = state.analysis.config.lanesDir;
       this.watchLanesDirectory();

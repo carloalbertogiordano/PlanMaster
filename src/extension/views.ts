@@ -59,7 +59,7 @@ export class StatusView implements View {
   /** `prefix` tells folders apart in a multi-root workspace. */
   constructor(prefix: string) {
     this.prefix = prefix;
-    this.item.command = 'workbench.actions.view.problems';
+    this.item.command = 'planmaster.queue.focus';
   }
 
   apply(state: ViewState): void {
