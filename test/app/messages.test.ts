@@ -3,10 +3,11 @@ import { isKnownPath, parseHostMessage, parseWebviewMessage } from '../../src/ap
 import { archiveFile, laneFile, run } from '../helpers.js';
 
 describe('parseWebviewMessage', () => {
-  it('accepts the three messages the view sends', () => {
+  it('accepts the messages the view sends', () => {
     expect(parseWebviewMessage({ type: 'ready' })).toEqual({ type: 'ready' });
     expect(parseWebviewMessage({ type: 'reveal', folder: 'demo', path: '.planmaster/lanes/A.md', line: 7 })).toEqual({ type: 'reveal', folder: 'demo', path: '.planmaster/lanes/A.md', line: 7 });
     expect(parseWebviewMessage({ type: 'markSeen', folder: 'demo' })).toEqual({ type: 'markSeen', folder: 'demo' });
+    expect(parseWebviewMessage({ type: 'drawn', lanes: 5 })).toEqual({ type: 'drawn', lanes: 5 });
   });
 
   it('drops unexpected extra properties', () => {
@@ -34,6 +35,10 @@ describe('parseWebviewMessage', () => {
     ['a reveal with an enormous line', { type: 'reveal', folder: 'f', path: 'a.md', line: 10_000_000 }],
     ['a reveal without a folder', { type: 'reveal', path: 'a.md', line: 1 }],
     ['a reveal with an empty folder', { type: 'reveal', folder: '', path: 'a.md', line: 1 }],
+    ['a drawn without a count', { type: 'drawn' }],
+    ['a drawn with a negative count', { type: 'drawn', lanes: -1 }],
+    ['a drawn with a fractional count', { type: 'drawn', lanes: 1.5 }],
+    ['a drawn with a huge count', { type: 'drawn', lanes: 100_000 }],
     ['a markSeen without a folder', { type: 'markSeen' }],
     ['a markSeen with a folder that is not a string', { type: 'markSeen', folder: 1 }],
   ])('rejects %s', (_name, raw) => {

@@ -23,3 +23,4 @@ export {
 export type { Chip, ChipKind, RowModel, RowState } from './rows.js';
 export { isKnownPath, parseHostMessage, parseWebviewMessage, type HostMessage, type WebviewMessage } from './messages.js';
 export { SeenTracker, type KeyValueStore } from './seen.js';
+export { buildWebviewHtml, type WebviewHtmlInput } from './webview-html.js';
