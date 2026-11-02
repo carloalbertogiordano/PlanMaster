@@ -1,28 +1,8 @@
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { analyze, blockedGroups, deriveEvents, laneCounts, summarize } from '../src/core/index.js';
 import { loadWorkspace } from '../src/node/load.js';
 import { NOW, T } from './helpers.js';
-
-const DEMO = fileURLToPath(new URL('../docs/examples/demo-workspace', import.meta.url));
-
-/** Modification times documented in the demo workspace README. */
-const MTIMES: Record<string, string> = {
-  A: '2026-11-02T11:44',
-  B: '2026-11-02T11:12',
-  C: '2026-11-02T11:35',
-  D: '2026-11-02T11:30',
-  E: '2026-11-02T08:07',
-};
-
-function analyzeDemo() {
-  const { input } = loadWorkspace(DEMO);
-  for (const file of input.files) {
-    const lane = file.path.split('/').pop()!.replace(/\.md$/, '');
-    file.mtimeMs = T(MTIMES[lane]!);
-  }
-  return analyze(input, NOW);
-}
+import { DEMO_DIR, DEMO_MTIMES, analyzeDemo } from './support/demo.js';
 
 describe('demo workspace', () => {
   const analysis = analyzeDemo();
@@ -51,7 +31,7 @@ describe('demo workspace', () => {
   it('has the numbers shown in the mockup status bar', () => {
     const summary = summarize(analysis);
     expect(summary).toMatchObject({ lanesActive: 5, open: 21, blocked: 5, errors: 2, warnings: 1, stale: 1 });
-    expect(summary.newestChangeMs).toBe(T(MTIMES.A!));
+    expect(summary.newestChangeMs).toBe(T(DEMO_MTIMES.A!));
   });
 
   it('groups blocked items as the mockup shows them', () => {
@@ -69,7 +49,7 @@ describe('demo workspace', () => {
   });
 
   it('is clean when the clock is unknown for staleness', () => {
-    const { input } = loadWorkspace(DEMO);
+    const { input } = loadWorkspace(DEMO_DIR);
     const withoutTimes = analyze({ ...input, files: input.files.map((f) => ({ ...f, mtimeMs: undefined })) }, NOW);
     expect(withoutTimes.findings.map((f) => f.code)).toEqual(['PM004', 'PM006']);
   });
