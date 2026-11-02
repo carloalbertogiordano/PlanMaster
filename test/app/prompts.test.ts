@@ -79,11 +79,12 @@ describe('the templates in docs/prompts', () => {
     planToQueue: file('plan-to-queue'),
     reconcile: file('reconcile'),
     archive: file('archive'),
+    setup: file('setup'),
   };
 
   it('every prompt document has exactly one template', () => {
     const documents = markdownFiles('docs/prompts').filter((f) => !f.endsWith('README.md'));
-    expect(documents).toHaveLength(7);
+    expect(documents).toHaveLength(8);
     for (const document of documents) expect(() => extractTemplate(read(document)), document).not.toThrow();
   });
 
@@ -103,5 +104,6 @@ describe('the templates in docs/prompts', () => {
     expect(templatePlaceholders(templates.planToQueue)).toEqual([]);
     expect(templatePlaceholders(templates.reconcile)).toEqual(['LANE_ID']);
     expect(templatePlaceholders(templates.archive)).toEqual(['LANE_ID', 'ARCHIVE_AFTER_DAYS']);
+    expect(templatePlaceholders(templates.setup)).toEqual(['SITUATION', 'LANES', 'PEOPLE', 'DONE_WINDOW_DAYS']);
   });
 });

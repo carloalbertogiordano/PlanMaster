@@ -10,6 +10,7 @@ export const TEMPLATES: Templates = loadTemplates({
   planToQueue: read('docs/prompts/plan-to-queue.md'),
   reconcile: read('docs/prompts/reconcile.md'),
   archive: read('docs/prompts/archive.md'),
+  setup: read('docs/prompts/setup.md'),
 });
 
 /** Stands in for the bundled hook script. */

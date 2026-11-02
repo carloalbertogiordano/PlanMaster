@@ -9,6 +9,7 @@ export interface PromptSources {
   planToQueue: string;
   reconcile: string;
   archive: string;
+  setup: string;
 }
 
 /** The text of each template, with `{{PLACEHOLDER}}` fields still to fill. */
@@ -57,6 +58,7 @@ export function loadTemplates(sources: PromptSources): Templates {
     planToQueue: extractTemplate(sources.planToQueue),
     reconcile: extractTemplate(sources.reconcile),
     archive: extractTemplate(sources.archive),
+    setup: extractTemplate(sources.setup),
   };
 }
 

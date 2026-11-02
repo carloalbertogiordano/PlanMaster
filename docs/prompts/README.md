@@ -7,6 +7,7 @@ The texts the extension gives to Claude Code. Each file has a short description 
 | [claude-md-block.md](claude-md-block.md) | `planmaster.installInstructions` | Permanent rules, installed in the project's `CLAUDE.md`. |
 | [format-reference.md](format-reference.md) | `planmaster.initWorkspace` | Template of `.planmaster/FORMAT.md`, the grammar reference Claude reads on demand. |
 | [lane-start.md](lane-start.md) | `planmaster.copyLanePrompt` | First message of a chat: which lane it is and where to resume. |
+| [setup.md](setup.md) | `planmaster.setup` | The guided setup: find old to-do lists, merge them into lanes, migrate and check, in four phases. |
 | [migrate-todo.md](migrate-todo.md) | `planmaster.copyMigratePrompt` | Convert an existing to-do document into lane files. |
 | [plan-to-queue.md](plan-to-queue.md) | `planmaster.copyPlanToQueuePrompt` | Turn an approved plan into queue items. |
 | [reconcile.md](reconcile.md) | `planmaster.copyReconcilePrompt` | Check a lane against reality and correct it. |
@@ -19,6 +20,7 @@ The texts the extension gives to Claude Code. Each file has a short description 
 | `{{LANE_ID}}` | Lane ID, for example `B`. |
 | `{{LANE_TITLE}}` | Lane title from the front matter. |
 | `{{PEOPLE}}` | The `people` list from `config.json`, comma-separated. |
+| `{{SITUATION}}` | What is wrong with the project, in the words shown to the user, and what cannot be read. |
 | `{{SOURCE_FILE}}` | Workspace-relative path chosen in the file picker. |
 | `{{LANES}}` | The existing lanes as `ID: title`, one per line. |
 | `{{DONE_WINDOW_DAYS}}` | `doneVisibleDays` from `config.json`. |

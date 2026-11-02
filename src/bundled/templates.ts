@@ -5,7 +5,8 @@ import laneStart from '../../docs/prompts/lane-start.md';
 import migrate from '../../docs/prompts/migrate-todo.md';
 import planToQueue from '../../docs/prompts/plan-to-queue.md';
 import reconcile from '../../docs/prompts/reconcile.md';
+import setup from '../../docs/prompts/setup.md';
 import { loadTemplates } from '../app/index.js';
 
 /** The prompt texts, taken from docs/prompts at build time so the documents stay the single source. */
-export const TEMPLATES = loadTemplates({ managedBlock, formatReference, laneStart, migrate, planToQueue, reconcile, archive });
+export const TEMPLATES = loadTemplates({ managedBlock, formatReference, laneStart, migrate, planToQueue, reconcile, archive, setup });
