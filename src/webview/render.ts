@@ -107,6 +107,11 @@ function renderPanel(folders: QueueViewModel[], state: ViewState, handlers: Hand
 }
 
 function renderTab(folder: QueueViewModel, state: ViewState, handlers: Handlers): HTMLElement {
+  if (folder.error !== undefined) {
+    const banner = el('p', 'error-banner', folder.error);
+    banner.setAttribute('role', 'alert');
+    return banner;
+  }
   switch (state.tab) {
     case 'stack':
       return renderStack(folder, state, handlers);

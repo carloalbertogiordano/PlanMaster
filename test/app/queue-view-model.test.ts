@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildQueueViewModel, type LaneBlockModel, type QueueViewModel } from '../../src/app/queue-view-model.js';
+import { buildQueueViewModel, errorViewModel, type LaneBlockModel, type QueueViewModel } from '../../src/app/queue-view-model.js';
 import { NOW, T, laneFile, run } from '../helpers.js';
 import { analyzeDemo } from '../support/demo.js';
 
@@ -197,5 +197,18 @@ describe('the model as data', () => {
     const hostile = '<img src=x onerror=alert(1)> **bold** [x](y)';
     const built = buildQueueViewModel(run([laneFile('A', `- [ ] A-1 ${hostile}`)]), { folder: 'f', lastSeen: 0 });
     expect(built.lanes[0]?.all[0]?.title).toBe(hostile);
+  });
+});
+
+describe('errorViewModel', () => {
+  it('is an empty view that carries the message', () => {
+    expect(errorViewModel('demo', 'config.json is not valid JSON')).toEqual({
+      folder: 'demo',
+      lanes: [],
+      blocked: [],
+      blockedCount: 0,
+      news: { sinceLabel: '', events: [] },
+      error: 'config.json is not valid JSON',
+    });
   });
 });

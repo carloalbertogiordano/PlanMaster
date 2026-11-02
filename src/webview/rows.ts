@@ -1,7 +1,7 @@
 import type { Chip, NewsEventModel, RowModel } from '../app/index.js';
 import { chipElement, el, icon } from './dom.js';
 
-export type Reveal = (path: string, line: number) => void;
+export type Reveal = (folder: string, path: string, line: number) => void;
 
 interface RowOptions {
   /** Distinguishes the same ID in different workspace folders, for keeping keyboard focus. */
@@ -17,7 +17,7 @@ export function renderRow(row: RowModel & { dependency?: Chip }, options: RowOpt
   button.dataset.key = `row:${options.folder}/${row.id}`;
   button.setAttribute('aria-label', `${row.id}, ${row.stateLabel}, ${row.title}`);
   button.style.setProperty('--depth', String(row.depth));
-  button.addEventListener('click', () => { reveal(row.path, row.line); });
+  button.addEventListener('click', () => { reveal(options.folder, row.path, row.line); });
 
   const main = el('span', 'main');
   const heading = el('span', 'heading');
@@ -43,7 +43,7 @@ export function renderEvent(event: NewsEventModel, folder: string, reveal: Revea
   button.dataset.id = event.row.id;
   button.dataset.key = `event:${folder}/${event.row.id}`;
   button.setAttribute('aria-label', `${event.time}, ${event.row.id} ${event.verb}${event.detail}, ${event.row.title}`);
-  button.addEventListener('click', () => { reveal(event.row.path, event.row.line); });
+  button.addEventListener('click', () => { reveal(folder, event.row.path, event.row.line); });
 
   const time = el('time', '', event.time);
   const summary = el('span', 'summary');

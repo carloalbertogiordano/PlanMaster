@@ -4,7 +4,7 @@ import type { QueueViewModel } from './queue-view-model.js';
 /** What the queue view can ask the extension to do. */
 export type WebviewMessage =
   | { type: 'ready' }
-  | { type: 'reveal'; path: string; line: number }
+  | { type: 'reveal'; folder: string; path: string; line: number }
   | { type: 'markSeen'; folder: string };
 
 /** What the extension sends to the queue view. */
@@ -25,8 +25,8 @@ type Fields = Record<string, unknown>;
  * the known fields are kept.
  */
 export function parseWebviewMessage(raw: unknown): WebviewMessage | null {
-  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
-  const fields = raw as Fields;
+  if (!isFields(raw)) return null;
+  const fields = raw;
   switch (fields.type) {
     case 'ready':
       return { type: 'ready' };
@@ -39,10 +39,10 @@ export function parseWebviewMessage(raw: unknown): WebviewMessage | null {
   }
 }
 
-function parseReveal({ path, line }: Fields): WebviewMessage | null {
-  if (!isBoundedString(path, MAX_PATH_LENGTH)) return null;
+function parseReveal({ folder, path, line }: Fields): WebviewMessage | null {
+  if (!isBoundedString(folder, MAX_FOLDER_LENGTH) || !isBoundedString(path, MAX_PATH_LENGTH)) return null;
   if (typeof line !== 'number' || !Number.isInteger(line) || line < 1 || line > MAX_LINE) return null;
-  return { type: 'reveal', path, line };
+  return { type: 'reveal', folder, path, line };
 }
 
 function parseMarkSeen({ folder }: Fields): WebviewMessage | null {
@@ -51,6 +51,21 @@ function parseMarkSeen({ folder }: Fields): WebviewMessage | null {
 
 function isBoundedString(value: unknown, max: number): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= max;
+}
+
+/**
+ * Checks a message from the extension. It comes from our own code, so only
+ * its overall shape is verified before the webview draws it.
+ */
+export function parseHostMessage(raw: unknown): HostMessage | null {
+  if (!isFields(raw) || raw.type !== 'state') return null;
+  const { folders } = raw;
+  if (!Array.isArray(folders) || !folders.every(isFields)) return null;
+  return { type: 'state', folders: folders as unknown as QueueViewModel[] };
+}
+
+function isFields(value: unknown): value is Fields {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /** Only files the extension has read may be opened on behalf of the webview. */

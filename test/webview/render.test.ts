@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildQueueViewModel, type QueueViewModel } from '../../src/app/index.js';
+import { buildQueueViewModel, errorViewModel, type QueueViewModel } from '../../src/app/index.js';
 import { laneKey, render, restoreViewState, type Handlers, type ViewState } from '../../src/webview/render.js';
 import { T, laneFile, run } from '../helpers.js';
 import { analyzeDemo } from '../support/demo.js';
@@ -122,7 +122,7 @@ describe('rows', () => {
   it('asks to reveal the item on click', () => {
     draw([demo()]);
     q('.row[data-id="D-04"]').click();
-    expect(handlers.reveal).toHaveBeenCalledWith('.planmaster/lanes/D.md', 7);
+    expect(handlers.reveal).toHaveBeenCalledWith('demo', '.planmaster/lanes/D.md', 7);
   });
 
   it('is a button with a full description for assistive technology', () => {
@@ -207,7 +207,7 @@ describe("what's new tab", () => {
   it('reveals the item when an event is clicked', () => {
     draw([demo()], initial('news'));
     q('.event[data-id="D-03"]').click();
-    expect(handlers.reveal).toHaveBeenCalledWith('.planmaster/lanes/D.md', 12);
+    expect(handlers.reveal).toHaveBeenCalledWith('demo', '.planmaster/lanes/D.md', 12);
   });
 
   it('marks the feed of a folder as seen', () => {
@@ -233,6 +233,21 @@ describe('several folders and empty workspaces', () => {
   it('explains how to start when there are no lanes', () => {
     draw([]);
     expect(root.textContent).toContain('No lanes yet');
+  });
+});
+
+describe('a folder with an invalid configuration', () => {
+  it('shows the message instead of the queue, as text', () => {
+    draw([errorViewModel('demo', 'config.json: <b>bad</b>')]);
+    expect(texts('.error-banner')).toEqual(['config.json: <b>bad</b>']);
+    expect(root.querySelector('b')).toBeNull();
+    expect(root.querySelector('.lane')).toBeNull();
+  });
+
+  it('still shows the other folders normally', () => {
+    draw([errorViewModel('one', 'broken'), demo('two')]);
+    expect(root.querySelectorAll('.error-banner')).toHaveLength(1);
+    expect(root.querySelectorAll('.lane')).toHaveLength(5);
   });
 });
 

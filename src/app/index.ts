@@ -12,6 +12,7 @@ export {
 export { CONFIG_PATH, classifyPath, trimTrailingSlashes } from './paths.js';
 export {
   buildQueueViewModel,
+  errorViewModel,
   type BlockedGroupModel,
   type BlockedRowModel,
   type BuildOptions,
@@ -20,5 +21,5 @@ export {
   type QueueViewModel,
 } from './queue-view-model.js';
 export type { Chip, ChipKind, RowModel, RowState } from './rows.js';
-export { isKnownPath, parseWebviewMessage, type HostMessage, type WebviewMessage } from './messages.js';
+export { isKnownPath, parseHostMessage, parseWebviewMessage, type HostMessage, type WebviewMessage } from './messages.js';
 export { SeenTracker, type KeyValueStore } from './seen.js';

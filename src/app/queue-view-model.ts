@@ -63,12 +63,19 @@ export interface QueueViewModel {
   blocked: BlockedGroupModel[];
   blockedCount: number;
   news: { sinceLabel: string; events: NewsEventModel[] };
+  /** Set instead of the content above when the folder cannot be analysed, for example a broken config.json. */
+  error?: string;
 }
 
 export interface BuildOptions {
   folder: string;
   /** Time of the last "mark as seen"; 0 when never. */
   lastSeen: number;
+}
+
+/** What a folder shows when its queue cannot be analysed. */
+export function errorViewModel(folder: string, message: string): QueueViewModel {
+  return { folder, lanes: [], blocked: [], blockedCount: 0, news: { sinceLabel: '', events: [] }, error: message };
 }
 
 export function buildQueueViewModel(analysis: Analysis, options: BuildOptions): QueueViewModel {
