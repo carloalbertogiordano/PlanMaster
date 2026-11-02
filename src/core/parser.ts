@@ -1,7 +1,8 @@
 import { SUPPORTED_FORMAT } from './config.js';
 import { finding, type FindingOptions } from './findings.js';
 import { parseTimestamp } from './time.js';
-import type { Finding, FrontMatter, Item, LaneFile, Marker, SourceFile, Tokens } from './types.js';
+import { splitTokens } from './tokens.js';
+import type { Finding, FrontMatter, Item, LaneFile, Marker, SourceFile } from './types.js';
 
 // Every pattern below is anchored and free of overlapping quantifiers, so matching is linear in the line length.
 // The ID suffix must start with a letter: `\d+` followed by `[a-z0-9]*` would let digits match either part.
@@ -9,14 +10,10 @@ export const ITEM_LINE = /^(?<indent>(?: {2})*)- \[(?<marker>[ ~!x-])\] (?<id>[A
 export const LANE_ID = /^[A-Z][A-Z0-9]{0,3}$/;
 export const ITEM_ID = /^[A-Z][A-Z0-9]{0,3}-\d+(?:[a-z][a-z0-9]*)?$/;
 const LOOSE_ITEM_LINE = /^\s*- \[/;
-const TOKEN_WORD = /^(ref|wait|since|done):(\S+)$/;
 const KEY_NAME = /^[A-Za-z][\w-]*$/;
-const WHITESPACE = /\s/;
 
 export const MAX_DEPTH = 3;
 export const MAX_TITLE_LENGTH = 120;
-/** Four token keys exist; more trailing tokens than this cannot be meaningful. */
-const MAX_TRAILING_TOKENS = 8;
 const FRONT_MATTER_KEYS = new Set(['format', 'lane', 'title']);
 
 export interface ParseResult {
@@ -182,7 +179,7 @@ interface ItemContext {
 
 function readItem(groups: Record<string, string | undefined>, line: number, context: ItemContext): void {
   const id = groups.id ?? '';
-  const { title, tokens, duplicated } = splitRest(groups.rest ?? '');
+  const { title, tokens, duplicated } = splitTokens(groups.rest ?? '');
   const requestedDepth = (groups.indent ?? '').length / 2;
   const item: Item = {
     id,
@@ -248,29 +245,6 @@ function reportUnparsable(text: string, line: number, report: Report): void {
   } else {
     report('PM016', line, `Line is not an item, a blank line or a comment: ${truncate(text)}`);
   }
-}
-
-/** Splits the text after the ID into the title and its trailing tokens, reading words from the right. */
-function splitRest(rest: string): { title: string; tokens: Tokens; duplicated: string[] } {
-  const tokens: Tokens = {};
-  const duplicated: string[] = [];
-  let remaining = rest.trimEnd();
-  for (let peeled = 0; peeled < MAX_TRAILING_TOKENS; peeled++) {
-    const start = lastWordStart(remaining);
-    const match = TOKEN_WORD.exec(remaining.slice(start));
-    if (!match) break;
-    const key = match[1] as keyof Tokens;
-    if (key in tokens) duplicated.push(key);
-    else tokens[key] = match[2] ?? '';
-    remaining = remaining.slice(0, start).trimEnd();
-  }
-  return { title: remaining, tokens, duplicated };
-}
-
-function lastWordStart(text: string): number {
-  let start = text.length;
-  while (start > 0 && !WHITESPACE.test(text.charAt(start - 1))) start--;
-  return start;
 }
 
 function truncate(text: string): string {
