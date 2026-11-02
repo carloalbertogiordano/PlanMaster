@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CONFIG_PATH, QueueController, SeenTracker, buildQueueViewModel, classifyPath, errorViewModel, isKnownPath, trimTrailingSlashes, type QueueViewModel, type ViewState } from '../app/index.js';
+import { CONFIG_PATH, QueueController, SeenTracker, buildQueueViewModel, classifyPath, errorViewModel, isKnownPath, trimTrailingSlashes, withSetup, type QueueViewModel, type SetupAssessment, type ViewState } from '../app/index.js';
 import { DEFAULT_CONFIG, type Analysis } from '../core/index.js';
 import { openAtLine } from './editor.js';
 import { relativePath } from './uris.js';
@@ -62,11 +62,17 @@ export class WorkspaceInstance implements vscode.Disposable {
   }
 
   /** What the queue view shows for this folder, or undefined before the first read. */
-  get viewModel(): QueueViewModel | undefined {
+  viewModelFor(setup: SetupAssessment | undefined): QueueViewModel | undefined {
     const state = this.controller.state;
     if (state === undefined) return undefined;
-    if (state.kind === 'config-error') return errorViewModel(this.folder.name, state.message);
-    return buildQueueViewModel(state.analysis, { folder: this.folder.name, lastSeen: this.seen.value });
+    if (state.kind === 'config-error') return withSetup(errorViewModel(this.folder.name, state.message), setup);
+    return buildQueueViewModel(state.analysis, { folder: this.folder.name, lastSeen: this.seen.value, ...(setup ? { setup } : {}) });
+  }
+
+  /** The message about config.json when it cannot be read. */
+  get configError(): string | undefined {
+    const state = this.controller.state;
+    return state?.kind === 'config-error' ? state.message : undefined;
   }
 
   async markSeen(): Promise<void> {

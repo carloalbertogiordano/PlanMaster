@@ -1,4 +1,4 @@
-import type { BlockedGroupModel, LaneBlockModel, QueueViewModel } from '../app/index.js';
+import type { BlockedGroupModel, LaneBlockModel, QueueViewModel, SetupNotice } from '../app/index.js';
 import { chipElement, el } from './dom.js';
 import { renderEvent, renderRow, type Reveal } from './rows.js';
 
@@ -15,6 +15,8 @@ export interface Handlers {
   markSeen(folder: string): void;
   selectTab(tab: TabId): void;
   toggleLane(key: string): void;
+  /** The user asked for the guided setup of a folder. */
+  setup(folder: string): void;
 }
 
 const TABS: readonly { id: TabId; label: string }[] = [
@@ -40,7 +42,7 @@ export function render(root: HTMLElement, folders: QueueViewModel[], state: View
   const focused = root.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.key : undefined;
 
   if (folders.length === 0) {
-    root.replaceChildren(emptyMessage());
+    root.replaceChildren(el('p', 'empty', 'Open a folder to use PlanMaster: it works on the files of a project.'));
     return;
   }
   root.replaceChildren(renderTabs(folders, state, handlers), renderPanel(folders, state, handlers));
@@ -63,7 +65,7 @@ function renderTabs(folders: QueueViewModel[], state: ViewState, handlers: Handl
     blocked: folders.reduce((sum, f) => sum + f.blockedCount, 0),
     news: folders.reduce((sum, f) => sum + f.news.events.length, 0),
   };
-  const list = el('div', 'tabs');
+  const list = el('div', 'tablist');
   list.setAttribute('role', 'tablist');
   list.append(...TABS.map((tab, index) => {
     const button = el('button', 'tab', tab.label);
@@ -78,7 +80,23 @@ function renderTabs(folders: QueueViewModel[], state: ViewState, handlers: Handl
     button.addEventListener('keydown', (event) => { moveBetweenTabs(event, index, handlers); });
     return button;
   }));
-  return list;
+
+  const bar = el('div', 'tabs');
+  bar.append(list);
+  const only = folders[0];
+  if (folders.length === 1 && only) bar.append(setupLink(only.folder, handlers));
+  return bar;
+}
+
+/** The button that starts the guided setup, shown whether or not it is needed, so it is always easy to find. */
+function setupLink(folder: string, handlers: Handlers): HTMLButtonElement {
+  const button = el('button', 'setup-link', 'Setup');
+  button.type = 'button';
+  button.dataset.key = `setup-link:${folder}`;
+  button.setAttribute('aria-label', 'Run the guided setup');
+  button.title = 'Run the guided setup';
+  button.addEventListener('click', () => { handlers.setup(folder); });
+  return button;
 }
 
 const ARROW_STEPS: Readonly<Record<string, number>> = { ArrowRight: 1, ArrowLeft: -1 };
@@ -99,11 +117,32 @@ function renderPanel(folders: QueueViewModel[], state: ViewState, handlers: Hand
   const many = folders.length > 1;
   for (const folder of folders) {
     const section = el('section', 'folder');
-    if (many) section.append(el('h2', 'folder-name', folder.folder));
+    if (many) {
+      const row = el('div', 'folder-name-row');
+      row.append(el('h2', 'folder-name', folder.folder), setupLink(folder.folder, handlers));
+      section.append(row);
+    }
+    if (folder.setup) section.append(renderSetupCard(folder.folder, folder.setup, handlers));
     section.append(renderTab(folder, state, handlers));
     panel.append(section);
   }
   return panel;
+}
+
+function renderSetupCard(folder: string, notice: SetupNotice, handlers: Handlers): HTMLElement {
+  const card = el('section', 'setup-card');
+  card.append(el('p', 'setup-headline', notice.headline), el('p', 'setup-detail', notice.detail));
+  if (notice.problems.length > 0) {
+    const list = el('ul', 'setup-problems');
+    list.append(...notice.problems.map((problem) => el('li', '', problem)));
+    card.append(list);
+  }
+  const start = el('button', 'setup-start', 'Set up with Claude');
+  start.type = 'button';
+  start.dataset.key = `setup-start:${folder}`;
+  start.addEventListener('click', () => { handlers.setup(folder); });
+  card.append(start);
+  return card;
 }
 
 function renderTab(folder: QueueViewModel, state: ViewState, handlers: Handlers): HTMLElement {
@@ -126,7 +165,7 @@ function renderTab(folder: QueueViewModel, state: ViewState, handlers: Handlers)
 
 function renderStack(folder: QueueViewModel, state: ViewState, handlers: Handlers): HTMLElement {
   const wrapper = el('div', 'stack');
-  if (folder.lanes.length === 0) wrapper.append(emptyMessage());
+  if (folder.lanes.length === 0 && !folder.setup) wrapper.append(emptyMessage());
   for (const lane of folder.lanes) {
     wrapper.append(renderLane(folder.folder, lane, state.expanded.includes(laneKey(folder.folder, lane.lane)), handlers));
   }

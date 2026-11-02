@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildQueueViewModel, errorViewModel, type LaneBlockModel, type QueueViewModel } from '../../src/app/queue-view-model.js';
+import { buildQueueViewModel, errorViewModel, setupViewModel, withSetup, type LaneBlockModel, type QueueViewModel } from '../../src/app/queue-view-model.js';
+import { assessSetup } from '../../src/app/setup.js';
 import { NOW, T, laneFile, run } from '../helpers.js';
 import { analyzeDemo } from '../support/demo.js';
 
 const LAST_SEEN = T('2026-11-02T09:15');
+
+const demoModelAnalysis = (): ReturnType<typeof analyzeDemo> => analyzeDemo();
 
 function demoModel(lastSeen = LAST_SEEN): QueueViewModel {
   return buildQueueViewModel(analyzeDemo(), { folder: 'demo', lastSeen });
@@ -210,5 +213,40 @@ describe('errorViewModel', () => {
       news: { sinceLabel: '', events: [] },
       error: 'config.json is not valid JSON',
     });
+  });
+});
+
+describe('the setup notice', () => {
+  const needs = assessSetup({ hasWorkspaceDir: true, analysis: run([]), claudeMd: undefined });
+
+  it('is added when the project needs setup', () => {
+    const model = buildQueueViewModel(run([]), { folder: 'f', lastSeen: 0, setup: needs });
+    expect(model.setup).toEqual({ reason: 'empty', headline: 'Your queue is empty.', detail: needs.detail, problems: [] });
+  });
+
+  it('is left out when nothing is needed or when none was given', () => {
+    const fine = assessSetup({ hasWorkspaceDir: true, analysis: demoModelAnalysis(), claudeMd: '<!-- planmaster:begin v1 -->\nx\n<!-- planmaster:end -->' });
+    expect(buildQueueViewModel(demoModelAnalysis(), { folder: 'f', lastSeen: 0, setup: fine }).setup).toBeUndefined();
+    expect(buildQueueViewModel(demoModelAnalysis(), { folder: 'f', lastSeen: 0 }).setup).toBeUndefined();
+  });
+
+  it('can be added to a model that was built without it, for example an error model', () => {
+    const base = errorViewModel('f', 'config.json is not valid JSON: boom');
+    const unreadable = assessSetup({ hasWorkspaceDir: true, analysis: undefined, claudeMd: undefined, configError: 'config.json is not valid JSON: boom' });
+    expect(withSetup(base, unreadable)).toEqual({ ...base, setup: { reason: 'unparsable', headline: 'Some queue files cannot be read.', detail: unreadable.detail, problems: ['config.json is not valid JSON: boom'] } });
+  });
+
+  it('is not added when nothing is needed or the assessment is missing', () => {
+    const base = errorViewModel('f', 'x');
+    const fine = assessSetup({ hasWorkspaceDir: true, analysis: demoModelAnalysis(), claudeMd: '<!-- planmaster:begin v1 -->\nx\n<!-- planmaster:end -->' });
+    expect(withSetup(base, fine)).toBe(base);
+    expect(withSetup(base, undefined)).toBe(base);
+  });
+
+  it('is the whole content of a folder that has no PlanMaster directory', () => {
+    const missing = assessSetup({ hasWorkspaceDir: false, analysis: undefined, claudeMd: undefined });
+    const model = setupViewModel('plain', missing);
+    expect(model).toMatchObject({ folder: 'plain', lanes: [], blocked: [], blockedCount: 0, setup: { reason: 'missing' } });
+    expect(JSON.parse(JSON.stringify(model))).toEqual(model);
   });
 });

@@ -42,12 +42,12 @@ title: Automated checks, gates and ratchets
 ## Getting started
 
 1. Build and install the extension: `npm install`, `npm run package`, then `code --install-extension dist-vsix/planmaster.vsix`.
-2. In your project, run **PlanMaster: Initialize Workspace** from the command palette. It creates `.planmaster/` and, if you like, your first lane.
-3. Run **PlanMaster: Install Instructions in CLAUDE.md** so that every session knows the format. You see the change before it is written.
-4. Optionally run **PlanMaster: Install Claude Code Hooks** so that mistakes in the queue are sent back to the session that made them. Review the change: the script it adds runs on the machine of everyone who uses the project.
-5. Start each chat bound to its lane, for example `PLANMASTER_LANE=B claude`. Without the hooks, use **PlanMaster: Copy Lane Start Prompt** and paste it as the first message.
-6. To bring an existing to-do document into the queue, use **PlanMaster: Copy Migration Prompt**. It works in two steps and never changes the source document.
-7. Open the PlanMaster view in the activity bar to see what each chat is doing, what is blocked and on whom, and what changed since you last looked.
+2. Open your project and click the PlanMaster icon in the activity bar. If there is nothing to show yet, the view says so in plain words and offers one button, **Set up with Claude**. PlanMaster also mentions it with a small message when it sees a project that has an empty or unreadable queue (and, for a project that already has a `CLAUDE.md` or `.claude/` folder, one that has no queue yet). You can answer "Not now" or "Don't ask again".
+3. Answer the few questions. PlanMaster prepares its files, adds a short note to `CLAUDE.md` (you see the change first), and asks whether it should check Claude's work automatically (recommended).
+4. PlanMaster copies one message. Open a Claude chat in the project and paste it. Claude finds your old to-do lists, proposes how to organise them into lanes, and asks you before writing anything.
+5. Start each chat bound to its lane, for example `PLANMASTER_LANE=B claude`, so that it knows which queue file is its own.
+
+To go through it again at any time, press **Setup** in the PlanMaster view, or run **PlanMaster: Set Up with Claude (Guided)** from the command palette. The other commands (initialize, install the instructions, install the hooks, copy a single prompt) are still there for doing one step by hand.
 
 ## Color themes
 

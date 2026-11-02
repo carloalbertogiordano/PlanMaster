@@ -24,6 +24,10 @@ export interface UserInterface {
   /** Lets the user choose a file; returns a workspace-relative path when it is inside the workspace. */
   chooseFile(prompt: string): Promise<string | undefined>;
   copy(text: string): Promise<void>;
+  /** A message with buttons that does not block; resolves to the label of the button pressed, or undefined if it was dismissed. */
+  offer(message: string, actions: readonly string[]): Promise<string | undefined>;
+  /** Opens a read-only document with the text, so that the user can read it. */
+  showText(text: string): Promise<void>;
   inform(message: string): void;
   warn(message: string): void;
   /** Opens a file at a 1-based line. */
@@ -46,6 +50,8 @@ export interface CommandContext {
   readHookScript: () => Promise<string>;
   /** The current analysis of the folder, if it could be made. */
   analysis: Analysis | undefined;
+  /** Set when config.json cannot be read, in which case there is no analysis. */
+  configError?: string;
 }
 
 export type CommandStatus = 'done' | 'cancelled' | 'nothing' | 'refused';

@@ -8,6 +8,7 @@ describe('parseWebviewMessage', () => {
     expect(parseWebviewMessage({ type: 'reveal', folder: 'demo', path: '.planmaster/lanes/A.md', line: 7 })).toEqual({ type: 'reveal', folder: 'demo', path: '.planmaster/lanes/A.md', line: 7 });
     expect(parseWebviewMessage({ type: 'markSeen', folder: 'demo' })).toEqual({ type: 'markSeen', folder: 'demo' });
     expect(parseWebviewMessage({ type: 'drawn', lanes: 5 })).toEqual({ type: 'drawn', lanes: 5 });
+    expect(parseWebviewMessage({ type: 'setup', folder: 'demo' })).toEqual({ type: 'setup', folder: 'demo' });
   });
 
   it('drops unexpected extra properties', () => {
@@ -35,6 +36,9 @@ describe('parseWebviewMessage', () => {
     ['a reveal with an enormous line', { type: 'reveal', folder: 'f', path: 'a.md', line: 10_000_000 }],
     ['a reveal without a folder', { type: 'reveal', path: 'a.md', line: 1 }],
     ['a reveal with an empty folder', { type: 'reveal', folder: '', path: 'a.md', line: 1 }],
+    ['a setup without a folder', { type: 'setup' }],
+    ['a setup with an empty folder', { type: 'setup', folder: '' }],
+    ['a setup with a folder that is not a string', { type: 'setup', folder: ['a'] }],
     ['a drawn without a count', { type: 'drawn' }],
     ['a drawn with a negative count', { type: 'drawn', lanes: -1 }],
     ['a drawn with a fractional count', { type: 'drawn', lanes: 1.5 }],

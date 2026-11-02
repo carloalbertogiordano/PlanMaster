@@ -39,8 +39,9 @@ function scriptedUi(api, script) {
   const real = api.testing.createUserInterface(api.states()[0].folder);
   let inputIndex = 0;
   let pickIndex = 0;
+  let offerIndex = 0;
   const ui = {
-    informed: [], warned: [], copied: [], previews: [], confirmations: [],
+    informed: [], warned: [], copied: [], previews: [], confirmations: [], offered: [], texts: [],
     pick: async (items) => {
       const choice = (script.picks ?? [])[pickIndex++];
       const index = typeof choice === 'function' ? choice(items) : choice;
@@ -50,6 +51,8 @@ function scriptedUi(api, script) {
     confirm: async (message, detail, action) => { ui.confirmations.push({ message, detail, action }); return script.confirm ?? true; },
     previewChange: async (path, before, after) => { ui.previews.push({ path, before, after }); await real.previewChange(path, before, after); },
     chooseFile: async () => script.file,
+    offer: async (message, actions) => { ui.offered.push({ message, actions }); return (script.offers ?? [])[offerIndex++]; },
+    showText: async (text) => { ui.texts.push(text); },
     copy: async (text) => { ui.copied.push(text); await real.copy(text); },
     inform: (message) => { ui.informed.push(message); },
     warn: (message) => { ui.warned.push(message); },
@@ -150,6 +153,13 @@ const tests = [
     assert.deepEqual(view.folders[0].lanes.map((l) => l.lane), ['A', 'B', 'C', 'D', 'E']);
   }],
 
+  ['tells the user in the view that Claude does not know about the queue yet', async (api) => {
+    await until('the assessment', () => api.setupReasons()[0].reason === 'instructions');
+    await until('the card in the view', () => api.queueView().folders[0]?.setup?.reason === 'instructions');
+    assert.equal(api.queueView().folders[0].setup.headline, 'Claude does not know about the queue yet.');
+    assert.equal(api.queueView().folders[0].lanes.length, 5, 'the queue itself is still shown');
+  }],
+
   ['opens an item in the editor when the view asks for it', async (api) => {
     const folder = api.states()[0].folder;
     assert.equal(await api.handleQueueMessage({ type: 'reveal', folder, path: laneD, line: 7 }), true);
@@ -190,7 +200,7 @@ const tests = [
 
   ['registers every PlanMaster command', async () => {
     const commands = await vscode.commands.getCommands(true);
-    for (const id of ['initWorkspace', 'installInstructions', 'copyLanePrompt', 'copyMigratePrompt', 'copyPlanToQueuePrompt', 'copyReconcilePrompt', 'copyArchivePrompt', 'revealItem', 'installHooks', 'markSeen', 'runLint']) {
+    for (const id of ['initWorkspace', 'installInstructions', 'copyLanePrompt', 'copyMigratePrompt', 'copyPlanToQueuePrompt', 'copyReconcilePrompt', 'copyArchivePrompt', 'revealItem', 'installHooks', 'setup', 'markSeen', 'runLint']) {
       assert.ok(commands.includes(`planmaster.${id}`), `planmaster.${id} is not registered`);
     }
   }],
@@ -223,6 +233,8 @@ const tests = [
 
     scriptedUi(api, {});
     assert.equal(await vscode.commands.executeCommand('planmaster.installInstructions'), 'nothing');
+    await until('the card to go away once Claude knows', () => api.setupReasons()[0].reason === null);
+    await until('the view to follow', () => api.queueView().folders[0]?.setup === undefined);
   }],
 
   ['refuses to touch a CLAUDE.md with damaged markers', async (api) => {
@@ -294,6 +306,47 @@ const tests = [
     const editor = vscode.window.activeTextEditor;
     assert.equal(editor.document.uri.fsPath, fileUri(laneD).fsPath);
     assert.equal(editor.selection.active.line, 6);
+  }],
+
+  ['an empty queue leads to an offer, and the offer leads into the guided setup', async (api) => {
+    // Start from a project where Claude already knows about the queue: an earlier test left CLAUDE.md damaged on purpose.
+    await fs.rm(claudeFile(), { force: true });
+    scriptedUi(api, { confirm: true });
+    assert.equal(await vscode.commands.executeCommand('planmaster.installInstructions'), 'done');
+    await until('a project that needs nothing', () => api.setupReasons()[0].reason === null);
+
+    const lanesDir = fileUri('.planmaster/lanes').fsPath;
+    const names = (await fs.readdir(lanesDir)).filter((name) => name.endsWith('.md'));
+    const saved = new Map(await Promise.all(names.map(async (name) => [name, await fs.readFile(path.join(lanesDir, name), 'utf8')])));
+    const ui = scriptedUi(api, { offers: ['Set up now', undefined], picks: [1] });
+    api.testing.resetOffers();
+    try {
+      for (const name of names) await fs.rm(path.join(lanesDir, name));
+      await until('the queue to be seen as empty', () => api.setupReasons()[0].reason === 'empty');
+      await until('the setup message to be copied', () => ui.copied.length === 1, 30000);
+      assert.match(ui.offered[0].message, /Your queue is empty\./);
+      assert.deepEqual(ui.offered[0].actions, ['Set up now', 'Not now', 'Don\u2019t ask again']);
+      assert.match(ui.copied[0], /Current situation: Your queue is empty\./);
+      assert.match(ui.copied[0], /PHASE 1/);
+      assert.match(await vscode.env.clipboard.readText(), /PHASE 1/);
+    } finally {
+      for (const [name, text] of saved) await fs.writeFile(path.join(lanesDir, name), text);
+    }
+    await until('the queue to be back', () => api.setupReasons()[0].reason === null);
+  }],
+
+  ['the setup button of the view runs the guided setup, and asks before repeating it', async (api) => {
+    const folder = api.states()[0].folder;
+    const ui = scriptedUi(api, { offers: ['Run it again', undefined], picks: [1] });
+    assert.equal(await api.handleQueueMessage({ type: 'setup', folder }), true);
+    assert.match(ui.offered[0].message, /already set up \(5 lanes, \d+ items\)/);
+    assert.equal(ui.copied.length, 1);
+    assert.match(ui.copied[0], /Current situation: PlanMaster is set up\./);
+
+    assert.equal(await api.handleQueueMessage({ type: 'setup', folder: 'no-such-folder' }), false);
+    const again = scriptedUi(api, { offers: [undefined] });
+    assert.equal(await vscode.commands.executeCommand('planmaster.setup'), 'nothing');
+    assert.deepEqual(again.copied, []);
   }],
 
   ['does nothing when a question is cancelled', async (api) => {

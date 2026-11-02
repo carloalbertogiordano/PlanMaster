@@ -16,6 +16,7 @@ import {
   type QueueEvent,
 } from '../core/index.js';
 import { dependencyChip, rowOf, type Chip, type RowContext, type RowModel } from './rows.js';
+import type { SetupAssessment, SetupReason } from './setup.js';
 
 export interface LaneBlockModel {
   lane: string;
@@ -57,6 +58,14 @@ export interface NewsEventModel {
   row: RowModel & { lane: string };
 }
 
+/** What the get-started card says, in plain words. */
+export interface SetupNotice {
+  reason: SetupReason;
+  headline: string;
+  detail: string;
+  problems: string[];
+}
+
 export interface QueueViewModel {
   folder: string;
   lanes: LaneBlockModel[];
@@ -65,12 +74,31 @@ export interface QueueViewModel {
   news: { sinceLabel: string; events: NewsEventModel[] };
   /** Set instead of the content above when the folder cannot be analysed, for example a broken config.json. */
   error?: string;
+  /** Set when the project needs the guided setup. */
+  setup?: SetupNotice;
 }
 
 export interface BuildOptions {
   folder: string;
   /** Time of the last "mark as seen"; 0 when never. */
   lastSeen: number;
+  /** What the guided setup found; shown as a card when it says setup is needed. */
+  setup?: SetupAssessment;
+}
+
+function noticeOf({ reason, headline, detail, problems }: SetupAssessment): SetupNotice | undefined {
+  return reason === null ? undefined : { reason, headline, detail, problems };
+}
+
+/** `model` with the get-started notice added, when the assessment says setup is needed. */
+export function withSetup(model: QueueViewModel, assessment: SetupAssessment | undefined): QueueViewModel {
+  const notice = assessment ? noticeOf(assessment) : undefined;
+  return notice ? { ...model, setup: notice } : model;
+}
+
+/** What a folder without any PlanMaster files shows: only the invitation to set up. */
+export function setupViewModel(folder: string, assessment: SetupAssessment): QueueViewModel {
+  return withSetup({ folder, lanes: [], blocked: [], blockedCount: 0, news: { sinceLabel: '', events: [] } }, assessment);
 }
 
 /** What a folder shows when its queue cannot be analysed. */
@@ -84,7 +112,9 @@ export function buildQueueViewModel(analysis: Analysis, options: BuildOptions): 
     staleIds: new Set(analysis.findings.filter((f) => f.code === 'PM012').map((f) => f.itemId ?? '')),
   };
   const blocked = blockedGroups(analysis).map((group) => blockedGroupModel(group, analysis, context));
+  const notice = options.setup ? noticeOf(options.setup) : undefined;
   return {
+    ...(notice ? { setup: notice } : {}),
     folder: options.folder,
     lanes: analysis.lanes.map((lane) => laneBlock(lane, analysis, context)),
     blocked,

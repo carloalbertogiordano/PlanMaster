@@ -166,6 +166,7 @@ All commands are in the palette under the category "PlanMaster". None edits a la
 | Command ID | Title | Behavior |
 |---|---|---|
 | `planmaster.initWorkspace` | Initialize Workspace | Creates `.planmaster/`, a default `config.json`, `FORMAT.md` (from the format reference template), and optionally one lane file after asking for lane ID and title. Shows what it will create and asks before writing. Never overwrites an existing file. |
+| `planmaster.setup` | Set Up with Claude (Guided) | The guided setup (section 9.2). Also started by the buttons in the queue view and by the offer to set up. |
 | `planmaster.installHooks` | Install Claude Code Hooks | Copies the hook program into `.planmaster/hooks/` and adds the hooks to `.claude/settings.json`, after showing the change and warning that the script runs on the machine of everyone who uses the project. Never overwrites other settings. |
 | `planmaster.installInstructions` | Install Instructions in CLAUDE.md | Inserts or updates the managed block (see claude-integration section 3). Shows a diff and asks before writing. |
 | `planmaster.copyLanePrompt` | Copy Lane Start Prompt | Asks for a lane (or takes the selected one) and copies the start prompt filled in with the lane's ID, title and the configured people. |
@@ -176,6 +177,33 @@ All commands are in the palette under the category "PlanMaster". None edits a la
 | `planmaster.markSeen` | Mark Everything as Seen | Sets last seen to now. |
 | `planmaster.revealItem` | Reveal Item | Quick pick over all item IDs and titles; opens the line. |
 | `planmaster.runLint` | Re-check All Lanes | Forces a full re-parse and refresh of diagnostics. |
+
+### 9.2 The guided setup
+
+For someone who knows nothing about the format, `PlanMaster: Set Up with Claude (Guided)` replaces the need to remember the other commands. It is also what the **Setup** button and the **Set up with Claude** button in the queue view run.
+
+**When it is offered.** The extension looks at every workspace folder and decides, in plain words, whether setup would help (`assessSetup`):
+
+| Situation | Message shown |
+|---|---|
+| No `.planmaster` directory | PlanMaster is not set up in this project yet. |
+| `config.json` or a queue file cannot be read | Some queue files cannot be read. (with the exact lines) |
+| Lane files exist but hold no items | Your queue is empty. |
+| `CLAUDE.md` has no PlanMaster block | Claude does not know about the queue yet. |
+
+Mistakes in what a queue says, such as a blocked item with no reason, are not setup problems; the Problems panel and the hooks deal with those. The situation is shown as a card at the top of the queue view with one button. It is also mentioned once per session in a small message with the choices "Set up now", "Not now" and "Don't ask again", except that a folder with no `.planmaster` is only mentioned if it already has a `CLAUDE.md` or a `.claude` folder, so unrelated projects are never nagged. Nothing starts by itself.
+
+**What it does.**
+
+1. Explains in a few lines what will happen and asks to start.
+2. Creates `.planmaster/config.json` and `.planmaster/FORMAT.md`; an existing file is never touched.
+3. Adds the instructions to `CLAUDE.md` after showing the change as a diff and asking. Damaged markers stop the setup with an explanation.
+4. Asks, in plain words, whether Claude's work should be checked automatically. A yes installs the hooks, again with the diff and a confirmation; a no skips them.
+5. Copies one message for Claude and says what to do with it. The user can copy it again or read it.
+
+If the project is already set up, the command says so and asks before going through the steps again.
+
+**The message for Claude** (`docs/prompts/setup.md`) works in four phases with a stop after each: look for the old to-do lists, plan the lanes and merge overlapping documents, write, and check. Nothing is written before the third phase, the original documents are never changed, and the files PlanMaster manages are left alone. The last phase verifies the result with `node .planmaster/hooks/planmaster-hook.cjs check`, which prints the same findings as the command-line checker.
 
 ### 9.1 How the commands behave
 
@@ -234,6 +262,7 @@ State, in `workspaceState`: the last-seen time and the expanded/collapsed state 
 | **0.2** (done) | Extension shell: watcher, diagnostics, status bar, decorations, grammar, go to definition and hover, and the `Re-Check All Lanes` command. Tested inside VS Code. |
 | **0.3** (done) | Queue view with the three tabs, tested inside VS Code: the page draws under the content security policy, reveals items, marks the feed as seen and shows a configuration error. Also ships the `Mark Everything as Seen` command. |
 | **0.4** (done) | Commands: initialize, install instructions, the five prompt commands, reveal item. The command flows run behind ports and are unit tested; the real diff, clipboard, file writes and refusal on damaged markers are tested inside VS Code. |
+| **0.6** (done) | The guided setup: the view tells the user in plain words when the queue is missing, empty or unreadable, one button starts the setup, the extension prepares the files and hands over one message for Claude, and a button in the view repeats it at any time. Tested in a real VS Code, including a project that has nothing of PlanMaster. |
 | **0.5** (done) | Hooks for Claude Code (see claude-integration section 7), the command that installs them, and the packaged extension. The package is verified by running the extension tests against the unpacked `.vsix`. Publishing to the marketplace is out of scope. |
 
 ## 15. Open questions

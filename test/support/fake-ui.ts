@@ -6,6 +6,10 @@ export interface Script {
   /** Index of the item to choose, or undefined to cancel. */
   picks?: (number | undefined)[];
   confirm?: boolean;
+  /** Answers to successive confirmations; once used up, `confirm` applies. */
+  confirms?: boolean[];
+  /** The button to press for successive offers, or undefined to dismiss. */
+  offers?: (string | undefined)[];
   file?: string | undefined;
 }
 
@@ -19,9 +23,13 @@ export class FakeUi implements UserInterface {
   readonly confirmations: { message: string; detail: string; action: string }[] = [];
   readonly pickLists: { placeholder: string; items: PickItem<unknown>[] }[] = [];
   readonly inputs: { prompt: string; validation: string | undefined }[] = [];
+  readonly offered: { message: string; actions: readonly string[] }[] = [];
+  readonly texts: string[] = [];
   private readonly script: Script;
   private inputIndex = 0;
   private pickIndex = 0;
+  private confirmIndex = 0;
+  private offerIndex = 0;
 
   constructor(script: Script = {}) {
     this.script = script;
@@ -41,7 +49,7 @@ export class FakeUi implements UserInterface {
 
   confirm(message: string, detail: string, action: string): Promise<boolean> {
     this.confirmations.push({ message, detail, action });
-    return Promise.resolve(this.script.confirm ?? true);
+    return Promise.resolve((this.script.confirms ?? [])[this.confirmIndex++] ?? this.script.confirm ?? true);
   }
 
   previewChange(path: string, before: string, after: string): Promise<void> {
@@ -55,6 +63,16 @@ export class FakeUi implements UserInterface {
 
   copy(text: string): Promise<void> {
     this.copied.push(text);
+    return Promise.resolve();
+  }
+
+  offer(message: string, actions: readonly string[]): Promise<string | undefined> {
+    this.offered.push({ message, actions });
+    return Promise.resolve((this.script.offers ?? [])[this.offerIndex++]);
+  }
+
+  showText(text: string): Promise<void> {
+    this.texts.push(text);
     return Promise.resolve();
   }
 

@@ -64,6 +64,15 @@ export class VsCodeUserInterface implements UserInterface {
     await vscode.env.clipboard.writeText(text);
   }
 
+  offer(message: string, actions: readonly string[]): Promise<string | undefined> {
+    return Promise.resolve(vscode.window.showInformationMessage(message, ...actions));
+  }
+
+  async showText(text: string): Promise<void> {
+    const document = await vscode.workspace.openTextDocument({ content: text, language: 'markdown' });
+    await vscode.window.showTextDocument(document, { preview: false });
+  }
+
   inform(message: string): void {
     void vscode.window.showInformationMessage(message);
   }

@@ -13,12 +13,15 @@ export { CONFIG_PATH, classifyPath, trimTrailingSlashes } from './paths.js';
 export {
   buildQueueViewModel,
   errorViewModel,
+  setupViewModel,
+  withSetup,
   type BlockedGroupModel,
   type BlockedRowModel,
   type BuildOptions,
   type LaneBlockModel,
   type NewsEventModel,
   type QueueViewModel,
+  type SetupNotice,
 } from './queue-view-model.js';
 export type { Chip, ChipKind, RowModel, RowState } from './rows.js';
 export { isKnownPath, parseHostMessage, parseWebviewMessage, type HostMessage, type WebviewMessage } from './messages.js';

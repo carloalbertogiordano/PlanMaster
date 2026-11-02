@@ -6,6 +6,8 @@ export type WebviewMessage =
   | { type: 'ready' }
   | { type: 'reveal'; folder: string; path: string; line: number }
   | { type: 'markSeen'; folder: string }
+  /** The user asked for the guided setup of this folder. */
+  | { type: 'setup'; folder: string }
   /** Sent after each draw, so the extension can tell that the view really showed something. */
   | { type: 'drawn'; lanes: number };
 
@@ -37,6 +39,8 @@ export function parseWebviewMessage(raw: unknown): WebviewMessage | null {
       return parseReveal(fields);
     case 'markSeen':
       return parseMarkSeen(fields);
+    case 'setup':
+      return parseSetup(fields);
     case 'drawn':
       return parseDrawn(fields);
     default:
@@ -52,6 +56,10 @@ function parseReveal({ folder, path, line }: Fields): WebviewMessage | null {
 
 function parseMarkSeen({ folder }: Fields): WebviewMessage | null {
   return isBoundedString(folder, MAX_FOLDER_LENGTH) ? { type: 'markSeen', folder } : null;
+}
+
+function parseSetup({ folder }: Fields): WebviewMessage | null {
+  return isBoundedString(folder, MAX_FOLDER_LENGTH) ? { type: 'setup', folder } : null;
 }
 
 function parseDrawn({ lanes }: Fields): WebviewMessage | null {

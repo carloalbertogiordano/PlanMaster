@@ -120,6 +120,10 @@ The command-line checker has the same findings in the same form, for use outside
 - Exit code `0` when there are no errors (warnings allowed), `1` when there is at least one error, `2` for usage or configuration errors.
 - `--json` prints the findings as a JSON array on stdout instead.
 
+### The guided setup
+
+The deterministic parts of putting this in place, which change files of the user's, are done by the extension with a diff and a confirmation: the configuration, the format reference, the block in `CLAUDE.md`, and the hooks. The part that needs judgment, finding the old to-do lists, merging overlapping ones and deciding the lanes, is done by Claude from one message that the guided setup copies for the user. That message tells Claude not to touch the files the extension manages, to stop for the user's approval after looking, after planning and before it finishes, and to verify its result with the `check` command of the hook program. See extension.md section 9.2.
+
 ## 8. Migration of an existing document
 
 Existing work lives in documents that were not written for this format. The migration prompt turns them into lane files without touching the source:

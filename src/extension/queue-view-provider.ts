@@ -3,19 +3,28 @@ import * as vscode from 'vscode';
 import { buildWebviewHtml, parseWebviewMessage, type HostMessage, type QueueViewModel } from '../app/index.js';
 import type { WorkspaceInstance } from './instance.js';
 
-/** The sidebar view that shows the queue. It only draws what it is given and asks the extension to open files. */
+/** What the queue view needs from the rest of the extension. */
+export interface QueueViewHost {
+  /** What to show, for every workspace folder. */
+  models(): QueueViewModel[];
+  instances(): readonly WorkspaceInstance[];
+  /** Starts the guided setup for the folder with this name; returns false if there is no such folder. */
+  runSetup(folderName: string): Promise<boolean>;
+}
+
+/** The sidebar view that shows the queue. It only draws what it is given and asks the extension to do things. */
 export class QueueViewProvider implements vscode.WebviewViewProvider {
   static readonly viewType = 'planmaster.queue';
 
   private readonly extensionUri: vscode.Uri;
-  private readonly instances: () => readonly WorkspaceInstance[];
+  private readonly host: QueueViewHost;
   private view: vscode.WebviewView | undefined;
   private posted: QueueViewModel[] = [];
   private drawnLanes: number | undefined;
 
-  constructor(extensionUri: vscode.Uri, instances: () => readonly WorkspaceInstance[]) {
+  constructor(extensionUri: vscode.Uri, host: QueueViewHost) {
     this.extensionUri = extensionUri;
-    this.instances = instances;
+    this.host = host;
   }
 
   /** What was last sent to the view, for tests. */
@@ -44,7 +53,7 @@ export class QueueViewProvider implements vscode.WebviewViewProvider {
   /** Sends the current queue to the view, if it is open. */
   push(): void {
     if (!this.view) return;
-    const folders = this.instances().flatMap((instance) => instance.viewModel ?? []);
+    const folders = this.host.models();
     this.posted = folders;
     const message: HostMessage = { type: 'state', folders };
     void this.view.webview.postMessage(message);
@@ -54,15 +63,22 @@ export class QueueViewProvider implements vscode.WebviewViewProvider {
   async handleMessage(raw: unknown): Promise<boolean> {
     const message = parseWebviewMessage(raw);
     if (message === null) return false;
-    if (message.type === 'ready') {
-      this.push();
-      return true;
+    switch (message.type) {
+      case 'ready':
+        this.push();
+        return true;
+      case 'drawn':
+        this.drawnLanes = message.lanes;
+        return true;
+      case 'setup':
+        return this.host.runSetup(message.folder);
+      default:
+        return this.handleItemMessage(message);
     }
-    if (message.type === 'drawn') {
-      this.drawnLanes = message.lanes;
-      return true;
-    }
-    const instance = this.instances().find((candidate) => candidate.folder.name === message.folder);
+  }
+
+  private async handleItemMessage(message: { type: 'reveal'; folder: string; path: string; line: number } | { type: 'markSeen'; folder: string }): Promise<boolean> {
+    const instance = this.host.instances().find((candidate) => candidate.folder.name === message.folder);
     if (!instance) return false;
     if (message.type === 'markSeen') {
       await instance.markSeen();

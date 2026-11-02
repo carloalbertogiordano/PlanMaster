@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildQueueViewModel, errorViewModel, type QueueViewModel } from '../../src/app/index.js';
+import { assessSetup, buildQueueViewModel, errorViewModel, setupViewModel, type QueueViewModel } from '../../src/app/index.js';
 import { laneKey, render, restoreViewState, type Handlers, type ViewState } from '../../src/webview/render.js';
 import { T, laneFile, run } from '../helpers.js';
 import { analyzeDemo } from '../support/demo.js';
@@ -27,7 +27,7 @@ function q(selector: string): HTMLElement {
 beforeEach(() => {
   root = document.createElement('div');
   document.body.replaceChildren(root);
-  handlers = { reveal: vi.fn(), markSeen: vi.fn(), selectTab: vi.fn(), toggleLane: vi.fn() };
+  handlers = { reveal: vi.fn(), markSeen: vi.fn(), selectTab: vi.fn(), toggleLane: vi.fn(), setup: vi.fn() };
 });
 
 describe('tabs', () => {
@@ -230,9 +230,9 @@ describe('several folders and empty workspaces', () => {
     expect(texts('.folder-name')).toEqual(['one', 'two']);
   });
 
-  it('explains how to start when there are no lanes', () => {
+  it('asks to open a folder when there is none', () => {
     draw([]);
-    expect(root.textContent).toContain('No lanes yet');
+    expect(root.textContent).toContain('Open a folder');
   });
 });
 
@@ -248,6 +248,66 @@ describe('a folder with an invalid configuration', () => {
     draw([errorViewModel('one', 'broken'), demo('two')]);
     expect(root.querySelectorAll('.error-banner')).toHaveLength(1);
     expect(root.querySelectorAll('.lane')).toHaveLength(5);
+  });
+});
+
+describe('the setup guide', () => {
+  const missing = assessSetup({ hasWorkspaceDir: false, analysis: undefined, claudeMd: undefined });
+  const needing = (folder: string): QueueViewModel => setupViewModel(folder, missing);
+
+  it('shows a get-started card with plain words and one big button when the project needs setup', () => {
+    draw([needing('plain')]);
+    const card = q('.setup-card');
+    expect(card.querySelector('.setup-headline')?.textContent).toBe('PlanMaster is not set up in this project yet.');
+    expect(card.querySelector('.setup-detail')?.textContent).toContain('Nothing is changed without showing you first.');
+    expect(card.querySelector('button.setup-start')?.textContent).toBe('Set up with Claude');
+  });
+
+  it('starts the setup for that folder when the button is pressed', () => {
+    draw([needing('plain')]);
+    q('button.setup-start').click();
+    expect(handlers.setup).toHaveBeenCalledWith('plain');
+  });
+
+  it('shows what cannot be read, as text', () => {
+    const hostile = '.planmaster/lanes/B.md:3 <img src=x onerror=alert(1)> bad';
+    const model: QueueViewModel = { ...needing('f'), setup: { reason: 'unparsable', headline: 'Some queue files cannot be read.', detail: 'd', problems: [hostile] } };
+    draw([model]);
+    expect(texts('.setup-problems li')).toEqual([hostile]);
+    expect(root.querySelector('img')).toBeNull();
+  });
+
+  it('shows the card above the content when a queue exists but the project still needs setup', () => {
+    const model: QueueViewModel = { ...demo(), setup: { reason: 'instructions', headline: 'Claude does not know about the queue yet.', detail: 'One step adds the instructions.', problems: [] } };
+    draw([model]);
+    expect(root.querySelector('.setup-card')).not.toBeNull();
+    expect(root.querySelectorAll('.lane')).toHaveLength(5);
+  });
+
+  it('keeps a setup button in the tab bar at all times, to run the guided setup again', () => {
+    draw([demo('demo')]);
+    expect(root.querySelector('.setup-card')).toBeNull();
+    const button = q('.tabs .setup-link');
+    expect(button.textContent).toBe('Setup');
+    expect(button.getAttribute('aria-label')).toBe('Run the guided setup');
+    button.click();
+    expect(handlers.setup).toHaveBeenCalledWith('demo');
+  });
+
+  it('gives each folder its own setup button when there are several', () => {
+    draw([demo('one'), needing('two')]);
+    expect(root.querySelector('.tabs .setup-link')).toBeNull();
+    const links = [...root.querySelectorAll<HTMLElement>('.folder-name-row .setup-link')];
+    expect(links).toHaveLength(2);
+    links[1]?.click();
+    expect(handlers.setup).toHaveBeenCalledWith('two');
+  });
+
+  it('keeps the card on the other tabs', () => {
+    for (const tab of ['blocked', 'news'] as const) {
+      draw([needing('plain')], initial(tab));
+      expect(root.querySelector('.setup-card'), tab).not.toBeNull();
+    }
   });
 });
 

@@ -43,6 +43,7 @@ A bug is fixed by first writing the test that reproduces it. Pure refactoring ne
 | `npm run typecheck` | Compiler without emitting. |
 | `npm run smells` | ESLint (typescript-eslint strict, SonarJS), jscpd (duplication), knip (dead code). |
 | `npm run coverage` | Unit tests with coverage thresholds (95% lines, 90% branches). |
+| `npm run themes` | Regenerates `themes/*.json` from the palettes in `src/themes`. |
 | `npm run bundle` | Bundles the extension into `dist/extension.cjs`. |
 | `npm run test:extension` | Runs the extension inside a real VS Code, headless through xvfb. Set `VSCODE_EXECUTABLE` to choose the binary. |
 | `npm run package` | Builds and packs the extension into `dist-vsix/planmaster.vsix`. |
