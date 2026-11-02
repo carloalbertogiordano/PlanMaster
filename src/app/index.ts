@@ -9,4 +9,4 @@ export {
   type OkViewState,
   type ViewState,
 } from './view-state.js';
-export { CONFIG_PATH, classifyPath } from './paths.js';
+export { CONFIG_PATH, classifyPath, trimTrailingSlashes } from './paths.js';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CONFIG_PATH, classifyPath } from '../../src/app/paths.js';
+import { CONFIG_PATH, classifyPath, trimTrailingSlashes } from '../../src/app/paths.js';
 
 const DEFAULT_DIR = '.planmaster/lanes';
 
@@ -34,5 +34,17 @@ describe('classifyPath', () => {
 
   it('names the configuration file', () => {
     expect(CONFIG_PATH).toBe('.planmaster/config.json');
+  });
+});
+
+describe('trimTrailingSlashes', () => {
+  it.each([
+    ['a/b', 'a/b'],
+    ['a/b/', 'a/b'],
+    ['a/b///', 'a/b'],
+    ['///', ''],
+    ['', ''],
+  ])('turns %j into %j', (input, expected) => {
+    expect(trimTrailingSlashes(input)).toBe(expected);
   });
 });
