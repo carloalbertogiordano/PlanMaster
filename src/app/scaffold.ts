@@ -44,8 +44,11 @@ export function validatePeople(value: string): string | undefined {
  * are never planned, so nothing is ever overwritten.
  */
 export function planInit(existing: ReadonlySet<string>, answers: InitAnswers, formatReference: string): PlannedFile[] {
+  const people = answers.people ?? [];
+  const problem = validatePeople(people.join(','));
+  if (problem !== undefined) throw new Error(problem);
   const planned: PlannedFile[] = [
-    { path: CONFIG_PATH, content: configText(answers.people ?? []) },
+    { path: CONFIG_PATH, content: configText(people) },
     { path: FORMAT_PATH, content: `${formatReference}\n` },
   ];
   if (answers.laneId !== undefined) planned.push(laneFile(answers.laneId, answers.laneTitle));

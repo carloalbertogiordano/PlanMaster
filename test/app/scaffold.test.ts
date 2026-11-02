@@ -44,6 +44,10 @@ describe('planInit', () => {
     expect(planInit(existing, {}, FORMAT_TEXT)).toEqual([]);
   });
 
+  it('refuses a person key that contains a space, since the config would then be unreadable', () => {
+    expect(() => planInit(new Set(), { people: ['alice smith'] }, FORMAT_TEXT)).toThrow(/alice smith/);
+  });
+
   it('refuses a lane id without a title, or an invalid one', () => {
     expect(() => planInit(new Set(), { laneId: 'B' }, FORMAT_TEXT)).toThrow(/title/);
     expect(() => planInit(new Set(), { laneId: 'b', laneTitle: 'Automated checks' }, FORMAT_TEXT)).toThrow(/lane ID/);
