@@ -1,4 +1,4 @@
-export interface Pair {
+interface Pair {
   bg: string;
   fg: string;
 }
@@ -35,7 +35,7 @@ export interface Palette {
   statusWarning: Pair;
 }
 
-export interface TokenRule {
+interface TokenRule {
   name?: string;
   scope: string | string[];
   settings: { foreground?: string; fontStyle?: string };

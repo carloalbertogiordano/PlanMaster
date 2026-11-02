@@ -49,6 +49,22 @@ title: Automated checks, gates and ratchets
 6. To bring an existing to-do document into the queue, use **PlanMaster: Copy Migration Prompt**. It works in two steps and never changes the source document.
 7. Open the PlanMaster view in the activity bar to see what each chat is doing, what is blocked and on whom, and what changed since you last looked.
 
+## Color themes
+
+Seven themes come with the extension (Preferences: Color Theme). They style the editor, the queue view and the status bar, and give each state of a lane file its own color.
+
+| Theme | Kind | What it is |
+|---|---|---|
+| PlanMaster Midnight | dark | Deep blue and calm. The sensible one. |
+| PlanMaster Solar | light | Warm paper with dark teal text. |
+| PlanMaster Cyberpunk | dark | Neon pink and cyan on night purple. |
+| PlanMaster Goth | dark | Near black, blood red, a candle's worth of light. |
+| PlanMaster Claude | dark | Warm charcoal with a terracotta accent. Unofficial. |
+| PlanMaster Banana Panic | light | Everything is yellow. You were warned. The text is dark brown, so it is still readable. |
+| PlanMaster Radioactive Pickle | dark | Lime on dark green, with more glow than any editor needs. |
+
+Even the silly ones keep to the rules: a test checks the contrast of every pair of colors that matters (editor text, the queue view, the focus line, the status bar in all three states and every syntax rule) against WCAG limits, and that the four queue states stay distinguishable by color. The theme files in `themes/` are generated from the palettes in `src/themes/palettes.ts` with `npm run themes`.
+
 ## Command-line checker
 
 ```sh

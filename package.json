@@ -29,7 +29,8 @@
     "bundle": "node scripts/bundle.mjs",
     "test:extension": "npm run bundle && xvfb-run -a node scripts/test-extension.mjs",
     "package": "node scripts/package.mjs",
-    "test:package": "npm run package && node scripts/verify-package.mjs && PLANMASTER_EXTENSION_PATH=dist-vsix/unpacked/extension xvfb-run -a node scripts/test-extension.mjs"
+    "test:package": "npm run package && node scripts/verify-package.mjs && PLANMASTER_EXTENSION_PATH=dist-vsix/unpacked/extension xvfb-run -a node scripts/test-extension.mjs",
+    "themes": "node scripts/build-themes.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -169,6 +170,43 @@
           "name": "Queue"
         }
       ]
-    }
+    },
+    "themes": [
+      {
+        "label": "PlanMaster Midnight",
+        "uiTheme": "vs-dark",
+        "path": "./themes/planmaster-midnight-color-theme.json"
+      },
+      {
+        "label": "PlanMaster Solar",
+        "uiTheme": "vs",
+        "path": "./themes/planmaster-solar-color-theme.json"
+      },
+      {
+        "label": "PlanMaster Cyberpunk",
+        "uiTheme": "vs-dark",
+        "path": "./themes/planmaster-cyberpunk-color-theme.json"
+      },
+      {
+        "label": "PlanMaster Goth",
+        "uiTheme": "vs-dark",
+        "path": "./themes/planmaster-goth-color-theme.json"
+      },
+      {
+        "label": "PlanMaster Claude",
+        "uiTheme": "vs-dark",
+        "path": "./themes/planmaster-claude-color-theme.json"
+      },
+      {
+        "label": "PlanMaster Banana Panic",
+        "uiTheme": "vs",
+        "path": "./themes/planmaster-banana-panic-color-theme.json"
+      },
+      {
+        "label": "PlanMaster Radioactive Pickle",
+        "uiTheme": "vs-dark",
+        "path": "./themes/planmaster-radioactive-pickle-color-theme.json"
+      }
+    ]
   }
 }

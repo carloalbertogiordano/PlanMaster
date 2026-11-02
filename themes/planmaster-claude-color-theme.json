@@ -1,0 +1,299 @@
+{
+  "$schema": "vscode://schemas/color-theme",
+  "name": "PlanMaster Claude",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "colors": {
+    "foreground": "#ece9e0",
+    "descriptionForeground": "#a8a396",
+    "errorForeground": "#e8606e",
+    "focusBorder": "#d97757",
+    "textLink.foreground": "#d97757",
+    "textLink.activeForeground": "#ece9e0",
+    "charts.blue": "#7aa2d6",
+    "charts.green": "#8fb573",
+    "charts.orange": "#e0a14b",
+    "charts.red": "#e8606e",
+    "charts.purple": "#b79ad9",
+    "charts.yellow": "#e3c669",
+    "editor.background": "#262624",
+    "editor.foreground": "#ece9e0",
+    "editor.selectionBackground": "#4a3b33",
+    "editor.lineHighlightBackground": "#302f2c",
+    "editor.rangeHighlightBackground": "#d9775726",
+    "editorCursor.foreground": "#d97757",
+    "editorLineNumber.foreground": "#a8a396",
+    "editorLineNumber.activeForeground": "#ece9e0",
+    "editorWidget.background": "#1f1e1d",
+    "editorWidget.border": "#3a3835",
+    "editorError.foreground": "#e8606e",
+    "editorWarning.foreground": "#e0a14b",
+    "editorInfo.foreground": "#7aa2d6",
+    "editorGroupHeader.tabsBackground": "#1a1918",
+    "tab.activeBackground": "#262624",
+    "tab.inactiveBackground": "#1a1918",
+    "tab.activeForeground": "#ece9e0",
+    "tab.inactiveForeground": "#a8a396",
+    "tab.border": "#3a3835",
+    "tab.activeBorderTop": "#d97757",
+    "scrollbarSlider.background": "#a8a39633",
+    "scrollbarSlider.hoverBackground": "#a8a39655",
+    "scrollbarSlider.activeBackground": "#a8a39677",
+    "sideBar.background": "#1f1e1d",
+    "sideBar.foreground": "#ece9e0",
+    "sideBar.border": "#3a3835",
+    "sideBarTitle.foreground": "#ece9e0",
+    "sideBarSectionHeader.background": "#1a1918",
+    "activityBar.background": "#1a1918",
+    "activityBar.foreground": "#ece9e0",
+    "activityBar.inactiveForeground": "#a8a396",
+    "activityBar.activeBorder": "#d97757",
+    "activityBarBadge.background": "#d97757",
+    "activityBarBadge.foreground": "#1a1918",
+    "titleBar.activeBackground": "#1a1918",
+    "titleBar.activeForeground": "#ece9e0",
+    "titleBar.inactiveBackground": "#1a1918",
+    "titleBar.inactiveForeground": "#a8a396",
+    "panel.background": "#1f1e1d",
+    "panel.border": "#3a3835",
+    "statusBar.background": "#a8472b",
+    "statusBar.foreground": "#ffffff",
+    "statusBar.border": "#3a3835",
+    "statusBarItem.hoverBackground": "#ffffff22",
+    "statusBarItem.errorBackground": "#a82a2a",
+    "statusBarItem.errorForeground": "#ffffff",
+    "statusBarItem.warningBackground": "#8a5f10",
+    "statusBarItem.warningForeground": "#ffffff",
+    "list.hoverBackground": "#302f2c",
+    "list.activeSelectionBackground": "#4a3b33",
+    "list.activeSelectionForeground": "#ece9e0",
+    "list.inactiveSelectionBackground": "#4a3b33",
+    "list.inactiveSelectionForeground": "#ece9e0",
+    "input.background": "#262624",
+    "input.foreground": "#ece9e0",
+    "input.border": "#3a3835",
+    "button.background": "#d97757",
+    "button.foreground": "#1a1918",
+    "badge.background": "#d97757",
+    "badge.foreground": "#1a1918"
+  },
+  "tokenColors": [
+    {
+      "name": "Comments",
+      "scope": [
+        "comment",
+        "punctuation.definition.comment"
+      ],
+      "settings": {
+        "foreground": "#8a8578",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "Strings",
+      "scope": "string",
+      "settings": {
+        "foreground": "#8fb573"
+      }
+    },
+    {
+      "name": "Constants",
+      "scope": [
+        "constant.numeric",
+        "constant.language",
+        "constant.character"
+      ],
+      "settings": {
+        "foreground": "#e0a14b"
+      }
+    },
+    {
+      "name": "Keywords",
+      "scope": [
+        "keyword",
+        "storage",
+        "storage.type"
+      ],
+      "settings": {
+        "foreground": "#b79ad9"
+      }
+    },
+    {
+      "name": "Functions",
+      "scope": [
+        "entity.name.function",
+        "support.function",
+        "meta.function-call"
+      ],
+      "settings": {
+        "foreground": "#7aa2d6"
+      }
+    },
+    {
+      "name": "Types",
+      "scope": [
+        "entity.name.type",
+        "entity.name.class",
+        "support.type",
+        "support.class"
+      ],
+      "settings": {
+        "foreground": "#e3c669"
+      }
+    },
+    {
+      "name": "Variables",
+      "scope": [
+        "variable",
+        "variable.other"
+      ],
+      "settings": {
+        "foreground": "#ece9e0"
+      }
+    },
+    {
+      "name": "Punctuation",
+      "scope": "punctuation",
+      "settings": {
+        "foreground": "#a8a396"
+      }
+    },
+    {
+      "name": "Headings",
+      "scope": "markup.heading",
+      "settings": {
+        "foreground": "#7aa2d6",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Bold",
+      "scope": "markup.bold",
+      "settings": {
+        "foreground": "#e0a14b",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Italic",
+      "scope": "markup.italic",
+      "settings": {
+        "foreground": "#b79ad9",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "Code and links",
+      "scope": [
+        "markup.inline.raw",
+        "markup.underline.link"
+      ],
+      "settings": {
+        "foreground": "#6dbab0"
+      }
+    },
+    {
+      "name": "Invalid",
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#e8606e"
+      }
+    },
+    {
+      "name": "PlanMaster comment",
+      "scope": "comment.block.planmaster",
+      "settings": {
+        "foreground": "#8a8578",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "PlanMaster punctuation",
+      "scope": [
+        "punctuation.definition.tag.planmaster",
+        "punctuation.separator.planmaster",
+        "punctuation.definition.bracket.planmaster",
+        "punctuation.definition.list.begin.markdown"
+      ],
+      "settings": {
+        "foreground": "#a8a396"
+      }
+    },
+    {
+      "name": "PlanMaster front matter key",
+      "scope": "keyword.other.planmaster",
+      "settings": {
+        "foreground": "#b79ad9"
+      }
+    },
+    {
+      "name": "PlanMaster front matter value",
+      "scope": "string.unquoted.planmaster",
+      "settings": {
+        "foreground": "#ece9e0"
+      }
+    },
+    {
+      "name": "PlanMaster item ID",
+      "scope": "entity.name.function.planmaster.id",
+      "settings": {
+        "foreground": "#d97757",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "PlanMaster token key",
+      "scope": "variable.parameter.planmaster.key",
+      "settings": {
+        "foreground": "#b79ad9"
+      }
+    },
+    {
+      "name": "PlanMaster token value",
+      "scope": "string.unquoted.planmaster.value",
+      "settings": {
+        "foreground": "#6dbab0"
+      }
+    },
+    {
+      "name": "PlanMaster state: to do",
+      "scope": "constant.character.planmaster.state.todo",
+      "settings": {
+        "foreground": "#a8a396",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "PlanMaster state: in progress",
+      "scope": "constant.character.planmaster.state.doing",
+      "settings": {
+        "foreground": "#7aa2d6",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "PlanMaster state: blocked",
+      "scope": "constant.character.planmaster.state.blocked",
+      "settings": {
+        "foreground": "#e0a14b",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "PlanMaster state: done",
+      "scope": "constant.character.planmaster.state.done",
+      "settings": {
+        "foreground": "#8fb573",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "PlanMaster state: dropped",
+      "scope": "constant.character.planmaster.state.dropped",
+      "settings": {
+        "foreground": "#a8a396",
+        "fontStyle": "bold"
+      }
+    }
+  ]
+}

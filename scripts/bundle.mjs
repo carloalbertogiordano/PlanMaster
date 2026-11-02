@@ -1,6 +1,9 @@
 // Bundles the extension into a single CommonJS file, the format the extension host loads.
 import { build } from 'esbuild';
 
+// The color themes are generated from their palettes, so a package can never contain stale ones.
+await import('./build-themes.mjs');
+
 const common = { bundle: true, sourcemap: true, logLevel: 'info' };
 
 await build({

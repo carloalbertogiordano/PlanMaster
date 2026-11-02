@@ -22,6 +22,8 @@ const required = [
   'extension/media/doing.svg',
   'extension/syntaxes/planmaster-lane.tmLanguage.json',
   'extension/language-configuration.json',
+  'extension/themes/planmaster-midnight-color-theme.json',
+  'extension/themes/planmaster-banana-panic-color-theme.json',
 ];
 const forbidden = [/^extension\/src\//, /^extension\/test\//, /^extension\/docs\//, /^extension\/scripts\//, /node_modules/, /\.map$/, /^extension\/\.planmaster\//, /^extension\/out\//];
 
