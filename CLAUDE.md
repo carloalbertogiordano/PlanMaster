@@ -56,6 +56,8 @@ A bug is fixed by first writing the test that reproduces it. Pure refactoring ne
 - TypeScript with `strict` and `noUncheckedIndexedAccess`. ES modules, imports use the `.js` suffix.
 - Layout: `src/core` is pure (no `node:` and no VS Code imports), `src/app` holds the editor-independent application logic behind ports (no VS Code imports), `src/node` reads files, `src/cli` is the command-line entry point, `src/webview` runs inside the queue view page (DOM only, no Node or editor API), `src/extension` is the only code that imports `vscode` and contains translation only. `test/` mirrors them; what needs a real editor is in `scripts/extension-tests`.
 - Every lint rule has a test for the case that triggers it and for the nearest case that does not.
+- The prompt documents in `docs/prompts` are bundled into the extension as text (see `src/extension/templates.ts`), so editing them changes what the commands copy. Keep each to exactly one ```text block.
+- Commands are written as flows over ports (`src/app/commands`) and tested with a scripted user interface; `src/extension` only supplies the real dialogs, diff, clipboard and file access.
 - Parsing must stay linear in the length of its input. Avoid regular expressions with overlapping quantifiers.
 - Match the surrounding code: comments only where the reason is not obvious from the code.
 

@@ -176,6 +176,15 @@ All commands are in the palette under the category "PlanMaster". None edits a la
 | `planmaster.revealItem` | Reveal Item | Quick pick over all item IDs and titles; opens the line. |
 | `planmaster.runLint` | Re-check All Lanes | Forces a full re-parse and refresh of diagnostics. |
 
+### 9.1 How the commands behave
+
+- Every command works on one workspace folder; in a multi-root workspace it first asks which.
+- **Initialize Workspace** asks for the people who can be waited on (optional) and the first lane's ID and title (optional), lists the files it will create, and asks before writing. A file that already exists is never overwritten; the command says when it leaves one alone.
+- **Install Instructions in CLAUDE.md** shows the change to `CLAUDE.md` as a diff and asks before writing. It also writes `.planmaster/FORMAT.md` from the current format reference, because the block points to it. If the markers in `CLAUDE.md` are damaged it changes nothing and says why.
+- **Prompt commands** ask which lane when the prompt is about one, fill the template from the lane, the configured people and the configured ages, and put the text on the clipboard. Text taken from the files is never treated as a placeholder or a replacement pattern.
+- **Reveal Item** searches every item of every live lane by ID or title and opens its line.
+- A question the user cancels ends the command without any change.
+
 The prompt texts are in [../prompts/](../prompts/). They are bundled with the extension as templates with `{{PLACEHOLDER}}` fields filled in by the commands. Prompt commands copy to the clipboard and show a notification; they never send anything anywhere.
 
 ## 10. Settings and state
@@ -223,7 +232,7 @@ State, in `workspaceState`: the last-seen time and the expanded/collapsed state 
 | **0.1** | `core` (parser, model, lint, events) with full tests; `cli`; demo workspace as fixture. |
 | **0.2** (done) | Extension shell: watcher, diagnostics, status bar, decorations, grammar, go to definition and hover, and the `Re-Check All Lanes` command. Tested inside VS Code. |
 | **0.3** (done) | Queue view with the three tabs, tested inside VS Code: the page draws under the content security policy, reveals items, marks the feed as seen and shows a configuration error. Also ships the `Mark Everything as Seen` command. |
-| **0.4** | Commands: init, install instructions, prompt commands, reveal item. |
+| **0.4** (done) | Commands: initialize, install instructions, the five prompt commands, reveal item. The command flows run behind ports and are unit tested; the real diff, clipboard, file writes and refusal on damaged markers are tested inside VS Code. |
 | **0.5** | Hook support: lint CLI usable from a Claude Code hook (see claude-integration section 7), packaging, marketplace metadata. |
 
 ## 15. Open questions

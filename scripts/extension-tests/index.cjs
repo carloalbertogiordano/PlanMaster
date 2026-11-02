@@ -31,6 +31,38 @@ async function lineAndColumn(relative, lineMarker, tokenMarker) {
   return { document, position: new vscode.Position(line, document.lineAt(line).text.indexOf(tokenMarker)) };
 }
 
+
+// A user interface that answers from a script. Copy, show and the diff use the editor's real implementations,
+// so those parts are exercised for real; only the dialogs that need a person are scripted.
+function scriptedUi(api, script) {
+  const real = api.testing.createUserInterface(api.states()[0].folder);
+  let inputIndex = 0;
+  let pickIndex = 0;
+  const ui = {
+    informed: [], warned: [], copied: [], previews: [], confirmations: [],
+    pick: async (items) => {
+      const choice = (script.picks ?? [])[pickIndex++];
+      const index = typeof choice === 'function' ? choice(items) : choice;
+      return index === undefined ? undefined : items[index].value;
+    },
+    input: async () => (script.inputs ?? [])[inputIndex++],
+    confirm: async (message, detail, action) => { ui.confirmations.push({ message, detail, action }); return script.confirm ?? true; },
+    previewChange: async (path, before, after) => { ui.previews.push({ path, before, after }); await real.previewChange(path, before, after); },
+    chooseFile: async () => script.file,
+    copy: async (text) => { ui.copied.push(text); await real.copy(text); },
+    inform: (message) => { ui.informed.push(message); },
+    warn: (message) => { ui.warned.push(message); },
+    show: (path, line) => real.show(path, line),
+  };
+  api.testing.useUserInterface(() => ui);
+  return ui;
+}
+
+const claudeFile = () => fileUri('CLAUDE.md').fsPath;
+const formatFile = () => fileUri('.planmaster/FORMAT.md').fsPath;
+const exists = (file) => fs.access(file).then(() => true, () => false);
+const labelIs = (label) => (items) => items.findIndex((item) => item.label === label);
+
 const tests = [
   ['recognises lane files as PlanMaster lanes', async () => {
     const document = await vscode.workspace.openTextDocument(fileUri(laneB));
@@ -153,6 +185,94 @@ const tests = [
     await until('the view to carry the error', () => typeof api.queueView().folders[0]?.error === 'string');
     await fs.writeFile(file, original);
     await until('the view to recover', () => api.queueView().folders[0]?.error === undefined && api.queueView().folders[0]?.lanes.length === 5);
+  }],
+
+  ['registers every PlanMaster command', async () => {
+    const commands = await vscode.commands.getCommands(true);
+    for (const id of ['initWorkspace', 'installInstructions', 'copyLanePrompt', 'copyMigratePrompt', 'copyPlanToQueuePrompt', 'copyReconcilePrompt', 'copyArchivePrompt', 'revealItem', 'markSeen', 'runLint']) {
+      assert.ok(commands.includes(`planmaster.${id}`), `planmaster.${id} is not registered`);
+    }
+  }],
+
+  ['initialize adds what is missing and never overwrites', async (api) => {
+    const configBefore = await fs.readFile(fileUri(config).fsPath, 'utf8');
+    assert.equal(await exists(formatFile()), false);
+    const ui = scriptedUi(api, { inputs: ['', ''], confirm: true });
+    assert.equal(await vscode.commands.executeCommand('planmaster.initWorkspace'), 'done');
+    assert.match(await fs.readFile(formatFile(), 'utf8'), /^# Queue format reference/);
+    assert.equal(await fs.readFile(fileUri(config).fsPath, 'utf8'), configBefore);
+    assert.match(ui.confirmations[0].detail, /FORMAT\.md/);
+
+    scriptedUi(api, { inputs: ['', ''] });
+    assert.equal(await vscode.commands.executeCommand('planmaster.initWorkspace'), 'nothing');
+  }],
+
+  ['installs the instructions into CLAUDE.md, showing a real diff first', async (api) => {
+    const ui = scriptedUi(api, { confirm: true });
+    assert.equal(await vscode.commands.executeCommand('planmaster.installInstructions'), 'done');
+    const written = await fs.readFile(claudeFile(), 'utf8');
+    assert.match(written, /^<!-- planmaster:begin v1 -->/);
+    assert.match(written, /<!-- planmaster:end -->\n$/);
+    assert.equal(ui.previews.length, 1);
+
+    const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    assert.ok(tab.input instanceof vscode.TabInputTextDiff, 'a diff editor is open');
+    assert.equal(tab.input.original.scheme, 'planmaster-before');
+    assert.equal(tab.input.modified.scheme, 'planmaster-after');
+
+    scriptedUi(api, {});
+    assert.equal(await vscode.commands.executeCommand('planmaster.installInstructions'), 'nothing');
+  }],
+
+  ['refuses to touch a CLAUDE.md with damaged markers', async (api) => {
+    const damaged = '# Mine\n<!-- planmaster:begin v1 -->\nno end marker\n';
+    await fs.writeFile(claudeFile(), damaged);
+    const ui = scriptedUi(api, { confirm: true });
+    assert.equal(await vscode.commands.executeCommand('planmaster.installInstructions'), 'refused');
+    assert.equal(await fs.readFile(claudeFile(), 'utf8'), damaged);
+    assert.match(ui.warned[0], /end marker/);
+  }],
+
+  ['copies the lane start prompt to the clipboard', async (api) => {
+    const ui = scriptedUi(api, { picks: [labelIs('A · Requirements matrix, counts and citations')] });
+    assert.equal(await vscode.commands.executeCommand('planmaster.copyLanePrompt'), 'done');
+    assert.match(ui.copied[0], /You are lane A: "Requirements matrix, counts and citations"\./);
+    assert.match(ui.copied[0], /People allowed in wait: alice, bob, carol\./);
+    assert.match(await vscode.env.clipboard.readText(), /You are lane A/);
+  }],
+
+  ['copies the migration prompt for a chosen document', async (api) => {
+    const ui = scriptedUi(api, { file: 'README.md' });
+    assert.equal(await vscode.commands.executeCommand('planmaster.copyMigratePrompt'), 'done');
+    assert.match(ui.copied[0], /Migrate the open work in README\.md/);
+    assert.match(ui.copied[0], /A: Requirements matrix, counts and citations/);
+  }],
+
+  ['copies the plan-to-queue, reconcile and archive prompts', async (api) => {
+    let ui = scriptedUi(api, {});
+    assert.equal(await vscode.commands.executeCommand('planmaster.copyPlanToQueuePrompt'), 'done');
+    assert.match(ui.copied[0], /The plan we just approved/);
+    ui = scriptedUi(api, { picks: [labelIs('B · Automated checks, gates and ratchets')] });
+    assert.equal(await vscode.commands.executeCommand('planmaster.copyReconcilePrompt'), 'done');
+    assert.match(ui.copied[0], /Reconcile the queue of lane B/);
+    ui = scriptedUi(api, { picks: [labelIs('C · Work plans, drafting and review')] });
+    assert.equal(await vscode.commands.executeCommand('planmaster.copyArchivePrompt'), 'done');
+    assert.match(ui.copied[0], /more than 14 days before now/);
+  }],
+
+  ['reveals any item by ID', async (api) => {
+    scriptedUi(api, { picks: [labelIs('D-04')] });
+    assert.equal(await vscode.commands.executeCommand('planmaster.revealItem'), 'done');
+    const editor = vscode.window.activeTextEditor;
+    assert.equal(editor.document.uri.fsPath, fileUri(laneD).fsPath);
+    assert.equal(editor.selection.active.line, 6);
+  }],
+
+  ['does nothing when a question is cancelled', async (api) => {
+    const ui = scriptedUi(api, { picks: [undefined] });
+    assert.equal(await vscode.commands.executeCommand('planmaster.copyLanePrompt'), 'cancelled');
+    assert.deepEqual(ui.copied, []);
+    api.testing.useUserInterface(undefined);
   }],
 
   ['runs the re-check command', async () => {

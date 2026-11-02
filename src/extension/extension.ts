@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
-import type { QueueViewModel } from '../app/index.js';
+import type { QueueViewModel, UserInterface } from '../app/index.js';
+import type { Analysis } from '../core/index.js';
 import { QueueDefinitionProvider, QueueHoverProvider, type AnalysisLookup } from './providers.js';
 import { WorkspaceInstance } from './instance.js';
+import { CommandRegistry, type UserInterfaceFactory } from './commands.js';
 import { QueueViewProvider } from './queue-view-provider.js';
 import { relativePath, uriOf } from './uris.js';
 
@@ -14,6 +16,13 @@ export interface PlanMasterApi {
   queueView(): { resolved: boolean; folders: QueueViewModel[]; drawnLanes: number | undefined };
   /** Delivers a message as if the queue view had sent it. Returns whether it was accepted. */
   handleQueueMessage(raw: unknown): Promise<boolean>;
+  /** Hooks for tests; the dialogs cannot be answered in a headless editor. */
+  testing: {
+    /** Answers the commands' questions from a script. Pass undefined to restore the editor's own dialogs. */
+    useUserInterface(factory: UserInterfaceFactory | undefined): void;
+    /** The editor's real user interface for a folder, for the parts that need no answers. */
+    createUserInterface(folderName: string): UserInterface;
+  };
 }
 
 class InstanceManager implements vscode.Disposable {
@@ -25,6 +34,10 @@ class InstanceManager implements vscode.Disposable {
   constructor(context: vscode.ExtensionContext, output: vscode.OutputChannel) {
     this.context = context;
     this.output = output;
+  }
+
+  analysisFor(folder: vscode.WorkspaceFolder): Analysis | undefined {
+    return this.instances.get(folder.uri.toString())?.analysis;
   }
 
   /** Called whenever any folder's queue view model may have changed. */
@@ -80,8 +93,16 @@ class InstanceManager implements vscode.Disposable {
     return undefined;
   };
 
-  api(provider: QueueViewProvider): PlanMasterApi {
+  api(provider: QueueViewProvider, commands: CommandRegistry): PlanMasterApi {
     return {
+      testing: {
+        useUserInterface: (factory) => { commands.useUserInterface(factory); },
+        createUserInterface: (folderName) => {
+          const folder = vscode.workspace.workspaceFolders?.find((candidate) => candidate.name === folderName);
+          if (!folder) throw new Error(`No workspace folder named ${folderName}`);
+          return commands.createUserInterface(folder);
+        },
+      },
       queueView: () => provider.lastPosted,
       handleQueueMessage: (raw) => provider.handleMessage(raw),
       states: () => [...this.instances.values()].map((instance) => {
@@ -112,6 +133,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<PlanMa
   const manager = new InstanceManager(context, output);
   const provider = new QueueViewProvider(context.extensionUri, () => manager.all());
   manager.setChangeListener(() => { provider.push(); });
+  const commands = new CommandRegistry(manager);
+  commands.register(context);
   const selector: vscode.DocumentSelector = { language: LANGUAGE };
 
   context.subscriptions.push(
@@ -128,7 +151,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<PlanMa
     }),
   );
   await manager.syncFolders();
-  return manager.api(provider);
+  return manager.api(provider, commands);
 }
 
 export function deactivate(): void {

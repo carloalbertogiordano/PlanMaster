@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { CONFIG_PATH, QueueController, SeenTracker, buildQueueViewModel, classifyPath, errorViewModel, isKnownPath, trimTrailingSlashes, type QueueViewModel, type ViewState } from '../app/index.js';
 import { DEFAULT_CONFIG, type Analysis } from '../core/index.js';
-import { relativePath, uriOf } from './uris.js';
+import { openAtLine } from './editor.js';
+import { relativePath } from './uris.js';
 import { DecorationsView, DiagnosticsView, StatusView, type View } from './views.js';
 import { VsCodeWorkspaceSource } from './workspace-source.js';
 
@@ -79,9 +80,8 @@ export class WorkspaceInstance implements vscode.Disposable {
     return analysis !== undefined && isKnownPath(analysis, path);
   }
 
-  async reveal(path: string, line: number): Promise<void> {
-    const position = new vscode.Position(line - 1, 0);
-    await vscode.window.showTextDocument(uriOf(this.folder.uri, path), { selection: new vscode.Range(position, position), preview: false });
+  reveal(path: string, line: number): Promise<void> {
+    return openAtLine(this.folder.uri, path, line);
   }
 
   get state(): ViewState | undefined {

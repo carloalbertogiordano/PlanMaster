@@ -87,6 +87,46 @@
         "command": "planmaster.markSeen",
         "title": "Mark Everything as Seen",
         "category": "PlanMaster"
+      },
+      {
+        "command": "planmaster.initWorkspace",
+        "title": "Initialize Workspace",
+        "category": "PlanMaster"
+      },
+      {
+        "command": "planmaster.installInstructions",
+        "title": "Install Instructions in CLAUDE.md",
+        "category": "PlanMaster"
+      },
+      {
+        "command": "planmaster.copyLanePrompt",
+        "title": "Copy Lane Start Prompt",
+        "category": "PlanMaster"
+      },
+      {
+        "command": "planmaster.copyMigratePrompt",
+        "title": "Copy Migration Prompt",
+        "category": "PlanMaster"
+      },
+      {
+        "command": "planmaster.copyPlanToQueuePrompt",
+        "title": "Copy Plan-to-Queue Prompt",
+        "category": "PlanMaster"
+      },
+      {
+        "command": "planmaster.copyReconcilePrompt",
+        "title": "Copy Reconcile Prompt",
+        "category": "PlanMaster"
+      },
+      {
+        "command": "planmaster.copyArchivePrompt",
+        "title": "Copy Archive Prompt",
+        "category": "PlanMaster"
+      },
+      {
+        "command": "planmaster.revealItem",
+        "title": "Reveal Item",
+        "category": "PlanMaster"
       }
     ],
     "configuration": {

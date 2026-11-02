@@ -36,7 +36,7 @@ Install behavior (`PlanMaster: Install Instructions in CLAUDE.md`):
 1. If `CLAUDE.md` does not exist, propose creating it with the block as its content.
 2. If the markers exist, replace everything between them (inclusive) with the block of the extension's version. If the text is identical, report "already up to date" and write nothing.
 3. If the markers do not exist, propose appending the block at the end, separated by a blank line.
-4. In every case show a diff and ask for confirmation before writing.
+4. In every case show a diff and ask for confirmation before writing. The same confirmation covers `.planmaster/FORMAT.md`, which is written from the current format reference because the block points to it.
 5. Never touch any text outside the markers. If only one marker is present, refuse and explain, since the block's extent is unknown.
 
 The marker carries a version (`v1`). When a newer extension carries a newer block, the extension shows a notification offering the update. It never updates silently.

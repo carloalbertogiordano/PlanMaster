@@ -11,6 +11,8 @@ await build({
   format: 'cjs',
   target: 'node20',
   external: ['vscode'],
+  // The prompt documents are bundled as text so the extension carries the exact prompts the docs describe.
+  loader: { '.md': 'text' },
 });
 
 // The queue view runs in a webview, a browser context without Node or the editor API.

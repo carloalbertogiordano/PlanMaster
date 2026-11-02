@@ -2,7 +2,7 @@
 
 A VS Code extension that shows the work of several long-running Claude Code chats as one visual queue: what each chat is doing now, what is next, what is blocked and on whom, what was closed, and what changed since you last looked.
 
-**Status: milestone 0.3.** The repository holds the specification, the prompts, a demo workspace, a visual mockup, the core library (parser, linter, model, events), a command-line checker, and a working VS Code extension shell: diagnostics, status bar, focus decorations, syntax highlighting, hover and go to definition for `wait:` references, and the queue view in the sidebar (Stack, Blocked and What's new tabs). The commands that install the instructions and copy the prompts (milestone 0.4) are not written yet.
+**Status: milestone 0.4.** The repository holds the specification, the prompts, a demo workspace, a visual mockup, the core library (parser, linter, model, events), a command-line checker, and a working VS Code extension shell: diagnostics, status bar, focus decorations, syntax highlighting, hover and go to definition for `wait:` references, and the queue view in the sidebar (Stack, Blocked and What's new tabs). Commands initialize a workspace, install the instructions into `CLAUDE.md` (with a diff and a confirmation), copy the prompts that tell Claude how to use the queue, and reveal any item. The hooks and the packaged extension (milestone 0.5) are not written yet.
 
 ## The idea
 
@@ -54,7 +54,7 @@ Findings are printed to stderr as `file:line severity code message`, a summary t
 1. **Done:** core library (`src/core`), disk loader (`src/node`) and command-line checker (`src/cli`), with tests on the demo workspace.
 2. **Done:** extension shell (`src/app`, `src/extension`): watcher, Problems panel, status bar, editor decorations, hover, go to definition.
 3. **Done:** the queue view: stack, blocked and what's-new tabs, with reveal and mark as seen.
-4. Commands that install the instructions and copy the prompts.
+4. **Done:** commands that initialize a workspace, install the instructions and copy the prompts.
 5. Hook support for automatic feedback to Claude.
 
 See [docs/spec/extension.md](docs/spec/extension.md#14-milestones) for the details.
