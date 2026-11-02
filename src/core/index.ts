@@ -24,3 +24,4 @@ export {
 export { deriveEvents, type QueueEvent, type EventKind } from './events.js';
 export { findingRange, waitReferenceAt, type ColumnRange, type IdReference } from './positions.js';
 export { escapeMarkdown, hoverMarkdown, statusBarModel, type StatusBarModel, type StatusLevel } from './presentation.js';
+export { QueueStore } from './store.js';

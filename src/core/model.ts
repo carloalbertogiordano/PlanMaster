@@ -1,9 +1,9 @@
 import { parseConfig } from './config.js';
 import { finding, sortFindings } from './findings.js';
 import { buildIndex, lint, type IndexedItem } from './lint.js';
-import { ITEM_ID, parseLaneFile } from './parser.js';
+import { ITEM_ID, parseLaneFile, type ParseResult } from './parser.js';
 import { DAY, parseTimestamp } from './time.js';
-import { isClosed, type Config, type Finding, type Item, type LaneFile, type WorkspaceInput } from './types.js';
+import { isClosed, type Config, type Finding, type Item, type LaneFile, type UnreadableFile, type WorkspaceInput } from './types.js';
 
 export interface Analysis {
   config: Config;
@@ -14,23 +14,37 @@ export interface Analysis {
   now: number;
 }
 
+/** A workspace whose files are already parsed, so unchanged files need not be parsed again. */
+export interface ParsedWorkspace {
+  parsed: ParseResult[];
+  unreadable: UnreadableFile[];
+  configText: string | undefined;
+}
+
 /**
  * Parses and lints a whole workspace. Pure: all file contents, modification
  * times and the current time come from the caller.
  * Throws ConfigError when config.json is present but invalid.
  */
 export function analyze(input: WorkspaceInput, now: number): Analysis {
-  const config = parseConfig(input.configText);
+  return analyzeParsed({
+    parsed: input.files.map((source) => parseLaneFile(source)),
+    unreadable: input.unreadable ?? [],
+    configText: input.configText,
+  }, now);
+}
+
+export function analyzeParsed(workspace: ParsedWorkspace, now: number): Analysis {
+  const config = parseConfig(workspace.configText);
   const findings: Finding[] = [];
   const lanes: LaneFile[] = [];
   const archives: LaneFile[] = [];
 
-  for (const source of input.files) {
-    const result = parseLaneFile(source);
+  for (const result of workspace.parsed) {
     findings.push(...result.findings);
-    (source.kind === 'lane' ? lanes : archives).push(result.file);
+    (result.file.kind === 'lane' ? lanes : archives).push(result.file);
   }
-  for (const file of input.unreadable ?? []) {
+  for (const file of workspace.unreadable) {
     findings.push(finding('PM021', { file: file.path, line: 1 }, `File could not be read: ${file.reason}`));
   }
 
