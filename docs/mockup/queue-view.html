@@ -326,6 +326,48 @@ select { font: inherit; font-size: 12.5px; color: var(--fg); background: var(--w
   </section>
 </div>
 
+<script type="text/plain" id="tpl-claude-block"><!-- planmaster:begin v1 -->
+## Work queue (managed by PlanMaster, do not edit this block by hand)
+
+Long-running work is tracked in `.planmaster/lanes/<LANE>.md`, one file per chat (a "lane").
+Write only to the lane you were assigned. If you were not told your lane, ask.
+The full grammar is in `.planmaster/FORMAT.md`.
+
+One item per line:
+
+    - [ ] B-12 Title of the work ref:P-017
+
+Markers: `[ ]` todo, `[~]` in progress, `[!]` blocked, `[x]` done, `[-]` dropped.
+Children are indented two spaces. Tokens go at the end of the line: `ref:`, `wait:`, `since:`, `done:`.
+
+Rules:
+1. Starting an item: set `[~]` and add `since:`. Only one top-level item may be `[~]`.
+2. Blocked: set `[!]`, add `wait:<person or item ID>`, set `since:`.
+3. Finishing: before telling the user the work is done, set `[x]`, remove `since:`, add `done:`.
+4. Never guess a time. Run `date +%Y-%m-%dT%H:%M` and use its output.
+5. Edit one line at a time with a targeted replacement anchored on the item ID. Never rewrite or reformat the file.
+6. A new item takes the next free number in your lane. Check `.planmaster/archive/` too. IDs are never reused.
+7. An item is hours or days of work. Small steps belong in your own todo list, not in the queue.
+8. Anything longer than a one-line title goes in a document, linked with `ref:`.
+9. After editing a line, read it back to confirm.
+<!-- planmaster:end --></script>
+<script type="text/plain" id="tpl-lane-start">You are lane {{LANE_ID}}: "{{LANE_TITLE}}".
+
+Your queue file is .planmaster/lanes/{{LANE_ID}}.md. Read it now, together with .planmaster/FORMAT.md and the PlanMaster block in CLAUDE.md.
+
+Then:
+1. If an item is [~], resume it. Read the files and notes it refers to before acting.
+2. If nothing is [~], take the first top-level [ ] item that does not depend on anything unfinished, mark it [~] with since:, and tell me which one you picked.
+3. If every remaining item is blocked, say so and list what each one waits for.
+
+While you work:
+- Write only to your own lane file, one line per edit.
+- Keep the queue true: change an item when its state changes, not later.
+- Get every time from `date +%Y-%m-%dT%H:%M`. Do not guess.
+- If you need something from another lane, do not edit that lane's file. Tell me. Record your own item as [!] with wait: set to the other lane's item ID if it exists, or to the person who decides.
+- People allowed in wait: {{PEOPLE}}.
+
+Before you tell me a piece of work is done, mark it [x] and read the line back.</script>
 <script>
 (function () {
   var NOW = Date.parse('2026-11-02T11:48');
@@ -676,54 +718,13 @@ select { font: inherit; font-size: 12.5px; color: var(--fg); background: var(--w
     if (t.id === 'copyBtn') { copyPrompt(); return; }
   });
 
-  /* ---------- commands and prompts (same text as docs/prompts) ---------- */
-  var CLAUDE_BLOCK = [
-    '<!-- planmaster:begin v1 -->',
-    '## Work queue (managed by PlanMaster, do not edit this block by hand)',
-    '',
-    'Long-running work is tracked in `.planmaster/lanes/<LANE>.md`, one file per chat (a "lane").',
-    'Write only to the lane you were assigned. If you were not told your lane, ask.',
-    'The full grammar is in `.planmaster/FORMAT.md`.',
-    '',
-    'One item per line:',
-    '',
-    '    - [ ] B-12 Title of the work ref:P-017',
-    '',
-    'Markers: `[ ]` todo, `[~]` in progress, `[!]` blocked, `[x]` done, `[-]` dropped.',
-    'Children are indented two spaces. Tokens go at the end of the line: `ref:`, `wait:`, `since:`, `done:`.',
-    '',
-    'Rules:',
-    '1. Starting an item: set `[~]` and add `since:`. Only one top-level item may be `[~]`.',
-    '2. Blocked: set `[!]`, add `wait:<person or item ID>`, set `since:`.',
-    '3. Finishing: before telling the user the work is done, set `[x]`, remove `since:`, add `done:`.',
-    '4. Never guess a time. Run `date +%Y-%m-%dT%H:%M` and use its output.',
-    '5. Edit one line at a time with a targeted replacement anchored on the item ID. Never rewrite or reformat the file.',
-    '6. A new item takes the next free number in your lane. Check `.planmaster/archive/` too. IDs are never reused.',
-    '7. An item is hours or days of work. Small steps belong in your own todo list, not in the queue.',
-    '8. Anything longer than a one-line title goes in a document, linked with `ref:`.',
-    '9. After editing a line, read it back to confirm.',
-    '<!-- planmaster:end -->'
-  ].join('\n');
+  /* ---------- commands and prompts (templates are the text of docs/prompts) ---------- */
+  var TEMPLATES = { block: $('tpl-claude-block').textContent, laneStart: $('tpl-lane-start').textContent };
+  function fill(template, values) {
+    return template.replace(/\{\{([A-Z_]+)\}\}/g, function (_, key) { return values[key]; });
+  }
   function promptFor(lane) {
-    return [
-      'You are lane ' + lane.id + ': "' + lane.title + '".',
-      '',
-      'Your queue file is .planmaster/lanes/' + lane.id + '.md. Read it now, together with .planmaster/FORMAT.md and the PlanMaster block in CLAUDE.md.',
-      '',
-      'Then:',
-      '1. If an item is [~], resume it. Read the files and notes it refers to before acting.',
-      '2. If nothing is [~], take the first top-level [ ] item that does not depend on anything unfinished, mark it [~] with since:, and tell me which one you picked.',
-      '3. If every remaining item is blocked, say so and list what each one waits for.',
-      '',
-      'While you work:',
-      '- Write only to your own lane file, one line per edit.',
-      '- Keep the queue true: change an item when its state changes, not later.',
-      '- Get every time from `date +%Y-%m-%dT%H:%M`. Do not guess.',
-      '- If you need something from another lane, do not edit that lane\'s file. Tell me. Record your own item as [!] with wait: set to the other lane\'s item ID if it exists, or to the person who decides.',
-      '- People allowed in wait: ' + PEOPLE.join(', ') + '.',
-      '',
-      'Before you tell me a piece of work is done, mark it [x] and read the line back.'
-    ].join('\n');
+    return fill(TEMPLATES.laneStart, { LANE_ID: lane.id, LANE_TITLE: lane.title, PEOPLE: PEOPLE.join(', ') });
   }
   function renderPrompt() {
     $('ptabs').innerHTML = [['prompt', 'Lane start prompt'], ['block', 'CLAUDE.md block']].map(function (t) {
@@ -731,7 +732,7 @@ select { font: inherit; font-size: 12.5px; color: var(--fg); background: var(--w
     }).join('');
     var lane = LANES.filter(function (l) { return l.id === state.plane; })[0];
     $('laneSel').hidden = state.ptab !== 'prompt';
-    $('ptext').textContent = state.ptab === 'prompt' ? promptFor(lane) : CLAUDE_BLOCK;
+    $('ptext').textContent = state.ptab === 'prompt' ? promptFor(lane) : TEMPLATES.block;
     $('copyMsg').textContent = '';
   }
   function copyPrompt() {

@@ -5,7 +5,7 @@ describe('parseTimestamp', () => {
   it('parses a valid local timestamp and round-trips it', () => {
     const ms = parseTimestamp('2026-11-02T11:48');
     expect(ms).not.toBeNull();
-    expect(formatTimestamp(ms as number)).toBe('2026-11-02T11:48');
+    expect(formatTimestamp(ms!)).toBe('2026-11-02T11:48');
   });
 
   it.each([

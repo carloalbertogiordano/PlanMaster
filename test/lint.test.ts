@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { analyze, type SourceFile } from '../src/core/index.js';
-import { CONFIG, NOW, T, archiveFile, codes, codesOf, laneFile, run } from './helpers.js';
+import { CONFIG, NOW, T, archiveFile, codes, codesOf, laneFile, run, runWithoutConfig } from './helpers.js';
 
 const at = (text: string): number => T(text);
 
@@ -87,7 +87,7 @@ describe('wait targets', () => {
   it('uses the configured people list', () => {
     const files = [laneFile('A', '- [!] A-1 Item wait:carol since:2026-11-02T10:00')];
     expect(codes(run(files, NOW, JSON.stringify({ people: ['carol'] })).findings)).toEqual([]);
-    expect(codes(run(files, NOW, undefined).findings)).toEqual(['PM007']);
+    expect(codes(runWithoutConfig(files).findings)).toEqual(['PM007']);
   });
 });
 

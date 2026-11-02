@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const CLI = path.join(ROOT, 'out', 'cli', 'main.js');
 const DEMO = path.join(ROOT, 'docs', 'examples', 'demo-workspace');
 const DEMO_ARGS = [DEMO, '--now', '2026-11-02T11:48', '--mtime', 'E=2026-11-02T08:07'];
@@ -18,7 +18,8 @@ function run(args: string[]) {
 let tmp: string;
 
 beforeAll(() => {
-  const build = spawnSync('npx', ['tsc', '-p', 'tsconfig.build.json'], { cwd: ROOT, encoding: 'utf8' });
+  const tsc = path.join(ROOT, 'node_modules', 'typescript', 'bin', 'tsc');
+  const build = spawnSync(process.execPath, [tsc, '-p', 'tsconfig.build.json'], { cwd: ROOT, encoding: 'utf8' });
   if (build.status !== 0) throw new Error(`build failed:\n${build.stdout}${build.stderr}`);
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'planmaster-cli-'));
 }, 60_000);
@@ -59,7 +60,7 @@ describe('planmaster-lint', () => {
     const { code, stdout, stderr } = run([...DEMO_ARGS, '--json']);
     expect(code).toBe(1);
     expect(stderr).toBe('');
-    const findings = JSON.parse(stdout) as Array<{ code: string; line: number; severity: string }>;
+    const findings = JSON.parse(stdout) as { code: string; line: number; severity: string }[];
     expect(findings.map((f) => f.code)).toEqual(['PM004', 'PM006', 'PM012']);
     expect(findings[2]).toMatchObject({ line: 7, severity: 'warning' });
   });

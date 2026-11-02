@@ -14,12 +14,47 @@ Everything in this repository is in English: code, comments, identifiers, docume
 - Commit messages: imperative mood, subject at most 72 characters, no trailing period, a body only when the reason is not obvious. One logical change per commit.
 - Do not commit scratch files, build output or dependencies (see `.gitignore`).
 
-## Development
+## Development method
 
-- `npm test` runs the unit and integration tests (the CLI tests build `out/` first). `npm run typecheck` runs the compiler without emitting.
+Work in small Red-Green-Refactor cycles.
+
+1. **Red.** Write one failing test for the next behavior. Run it and see it fail for the right reason.
+2. **Green.** Write the least code that makes it pass.
+3. **Refactor.** Clean up with the tests green, then run the smell analysis.
+
+A bug is fixed by first writing the test that reproduces it. Pure refactoring needs no new test, but if the code to be changed is not covered, add characterization tests first.
+
+### Tests follow FIRST
+
+| Principle | How it is enforced here |
+|---|---|
+| **Fast** | The unit project runs in about a second; a unit test slower than 1 s fails (`testTimeout`). Anything that builds or spawns a process belongs to the integration project. |
+| **Independent** | No test relies on another. `npm run test:shuffle` runs them in random order. Files are created in per-test temporary directories. |
+| **Repeatable** | No dependence on the clock, the network or the machine. Time is passed in. `npm run test:tz` runs the suite in five time zones. |
+| **Self-validating** | Every test asserts; none needs a human to read output. |
+| **Timely** | Tests are written before the code (Red first), not after. |
+
+### Commands
+
+| Command | Purpose |
+|---|---|
+| `npm test` | Unit tests. |
+| `npm run test:integration` | Builds `out/` and runs the command-line checker as a subprocess. |
+| `npm run typecheck` | Compiler without emitting. |
+| `npm run smells` | ESLint (typescript-eslint strict, SonarJS), jscpd (duplication), knip (dead code). |
+| `npm run coverage` | Unit tests with coverage thresholds (95% lines, 90% branches). |
+| `npm run check` | Everything above plus shuffle, time zones and integration. Run before every commit. |
+
+### Code smells
+
+`npm run smells` must report nothing. Limits: cyclomatic complexity 10, cognitive complexity 12, 50 lines per function, 4 parameters, nesting depth 3, 300 lines per file. Do not silence a rule with a comment to get past it; restructure the code. If a limit is genuinely wrong, change it in `eslint.config.js` in a commit of its own, with the reason.
+
+### Code conventions
+
 - TypeScript with `strict` and `noUncheckedIndexedAccess`. ES modules, imports use the `.js` suffix.
 - Layout: `src/core` is pure (no `node:` and no VS Code imports), `src/node` reads files, `src/cli` is the command-line entry point, `test/` mirrors them.
 - Every lint rule has a test for the case that triggers it and for the nearest case that does not.
+- Parsing must stay linear in the length of its input. Avoid regular expressions with overlapping quantifiers.
 - Match the surrounding code: comments only where the reason is not obvious from the code.
 
 ## Source of truth
@@ -35,7 +70,7 @@ Everything in this repository is in English: code, comments, identifiers, docume
 - The prompts in `docs/prompts/` and the strings in `docs/mockup/queue-view.html` (managed block and lane start prompt) are identical in content.
 - The managed block stays under 350 words.
 
-`npm test` checks all four, in `test/docs.test.ts` and `test/demo.test.ts`. Run it and `npm run typecheck` before every commit.
+`npm test` checks all four, in `test/docs.test.ts` and `test/demo.test.ts`.
 
 ## Principles to keep
 
