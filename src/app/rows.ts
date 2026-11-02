@@ -36,6 +36,11 @@ const STATES: Readonly<Record<Marker, { state: RowState; label: string }>> = {
   '-': { state: 'dropped', label: 'dropped' },
 };
 
+/** The state of a marker in words: "to do", "in progress", "blocked", "done" or "dropped". */
+export function stateLabelOf(marker: Marker): string {
+  return STATES[marker].label;
+}
+
 export function rowOf(item: Item, context: RowContext): RowModel {
   const { state, label } = STATES[item.marker];
   return {
