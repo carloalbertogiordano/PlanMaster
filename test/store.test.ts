@@ -125,6 +125,20 @@ describe('QueueStore configuration', () => {
   });
 });
 
+describe('QueueStore clear', () => {
+  it('forgets files, unreadable files and the configuration', () => {
+    const { store } = storeWithSpy();
+    store.setFile(laneFile('A', '- [!] A-1 Item wait:alice since:2026-11-02T10:00'));
+    store.setUnreadable({ path: '.planmaster/lanes/B.md', kind: 'lane', reason: 'busy' });
+    store.setConfigText('{ nope');
+    store.clear();
+    const analysis = store.analyze(NOW);
+    expect(analysis.lanes).toEqual([]);
+    expect(analysis.findings).toEqual([]);
+    expect(store.paths()).toEqual([]);
+  });
+});
+
 describe('QueueStore contents', () => {
   it('returns the latest text of a file and lists the known paths', () => {
     const { store } = storeWithSpy();

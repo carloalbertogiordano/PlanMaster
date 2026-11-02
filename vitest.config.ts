@@ -5,7 +5,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       // The command-line entry point is covered by the integration project, which runs it as a subprocess.
-      include: ['src/core/**', 'src/node/**'],
+      include: ['src/core/**', 'src/node/**', 'src/app/**'],
       thresholds: { statements: 95, branches: 90, functions: 95, lines: 95 },
     },
   },

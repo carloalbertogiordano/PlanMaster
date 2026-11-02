@@ -43,6 +43,13 @@ export class QueueStore {
     this.unreadable.delete(path);
   }
 
+  /** Forgets everything, including the configuration. */
+  clear(): void {
+    this.entries.clear();
+    this.unreadable.clear();
+    this.configText = undefined;
+  }
+
   setConfigText(text: string | undefined): void {
     this.configText = text;
   }

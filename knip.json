@@ -2,6 +2,7 @@
   "entry": [
     "src/cli/main.ts",
     "src/core/index.ts",
+    "src/app/index.ts",
     "test/**/*.test.ts"
   ],
   "project": [
