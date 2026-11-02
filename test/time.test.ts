@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { formatDuration, formatTimestamp, parseTimestamp } from '../src/core/index.js';
+import { formatClock, formatDayMonth, formatDuration, formatTimestamp, parseTimestamp, sameLocalDay } from '../src/core/index.js';
+import { T } from './helpers.js';
 
 describe('parseTimestamp', () => {
   it('parses a valid local timestamp and round-trips it', () => {
@@ -40,5 +41,24 @@ describe('formatDuration', () => {
     [48 * 60 * 60_000, '2 d'],
   ])('formats %d ms as %s', (ms, expected) => {
     expect(formatDuration(ms)).toBe(expected);
+  });
+});
+
+describe('clock and day formatting', () => {
+  it('formats the time of day with two digits', () => {
+    expect(formatClock(T('2026-11-02T09:05'))).toBe('09:05');
+    expect(formatClock(T('2026-11-02T23:59'))).toBe('23:59');
+  });
+
+  it('formats the day and month in English, independent of the machine locale', () => {
+    expect(formatDayMonth(T('2026-11-02T09:05'))).toBe('2 Nov');
+    expect(formatDayMonth(T('2026-10-30T16:00'))).toBe('30 Oct');
+    expect(formatDayMonth(T('2027-01-01T00:00'))).toBe('1 Jan');
+  });
+
+  it('tells whether two instants fall on the same local day', () => {
+    expect(sameLocalDay(T('2026-11-02T00:00'), T('2026-11-02T23:59'))).toBe(true);
+    expect(sameLocalDay(T('2026-11-02T23:59'), T('2026-11-03T00:00'))).toBe(false);
+    expect(sameLocalDay(T('2025-11-02T10:00'), T('2026-11-02T10:00'))).toBe(false);
   });
 });
