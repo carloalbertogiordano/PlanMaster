@@ -28,3 +28,4 @@ export * from './commands/index.js';
 export { loadTemplates, extractTemplate, fillTemplate, type PromptSources, type Templates } from './prompts.js';
 export { installBlock, type InstallResult } from './claude-md.js';
 export * from './hooks.js';
+export * from './hook-settings.js';
