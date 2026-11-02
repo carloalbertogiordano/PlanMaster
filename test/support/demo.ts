@@ -1,9 +1,11 @@
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { analyze, type Analysis } from '../../src/core/index.js';
 import { loadWorkspace } from '../../src/node/load.js';
 import { NOW, T } from '../helpers.js';
 
-export const DEMO_DIR = fileURLToPath(new URL('../../docs/examples/demo-workspace', import.meta.url));
+// A string is passed to fileURLToPath because some test environments replace the global URL class.
+export const DEMO_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../docs/examples/demo-workspace');
 
 /** Modification times documented in the demo workspace README. */
 export const DEMO_MTIMES: Record<string, string> = {

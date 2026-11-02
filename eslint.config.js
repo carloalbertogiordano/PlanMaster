@@ -22,6 +22,13 @@ export default tseslint.config(
     },
   },
   {
+    // The DOM lib is on for the webview, so keep browser globals out of the code that must run anywhere.
+    files: ['src/core/**/*.ts', 'src/app/**/*.ts', 'src/node/**/*.ts', 'src/cli/**/*.ts'],
+    rules: {
+      'no-restricted-globals': ['error', 'document', 'window', 'navigator', 'HTMLElement', 'localStorage', 'acquireVsCodeApi'],
+    },
+  },
+  {
     files: ['test/**/*.ts'],
     rules: {
       'max-lines': 'off',
