@@ -20,3 +20,5 @@ export {
   type QueueViewModel,
 } from './queue-view-model.js';
 export type { Chip, ChipKind, RowModel, RowState } from './rows.js';
+export { isKnownPath, parseWebviewMessage, type HostMessage, type WebviewMessage } from './messages.js';
+export { SeenTracker, type KeyValueStore } from './seen.js';
