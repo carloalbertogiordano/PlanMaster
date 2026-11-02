@@ -43,7 +43,10 @@ Modules:
 | `core/lint` | Applies the rules of queue-format section 12 to the model. | no |
 | `core/events` | Derives "what's new" events from timestamps and a last-seen time (section 6.3). | no |
 | `cli` | Runs the parser and linter on a directory and prints findings. Same code as the extension, no VS Code. Used by tests and, later, by hooks. | no |
-| `extension` | Watcher, diagnostics, status bar, decorations, webview, commands. | yes |
+| `app/view-state` | Turns an analysis into what the editor shows: status bar model, diagnostics with columns, focus marks. | no |
+| `app/controller` | Keeps the queue current: debounces change notifications, reads changed files one batch at a time, republishes every minute, reports a broken configuration, offers a full reload. Files come from a `WorkspaceSource` port. | no |
+| `app/paths` | Which workspace paths are lane files, archive files or neither. | no |
+| `extension` | Thin adapters: reads files through the editor file system, watches them, publishes diagnostics, status bar and decorations, hover and definition providers, commands. No logic of its own beyond translation. | yes |
 
 Keeping `core` free of the VS Code API is a hard requirement: it makes the format testable with plain fixtures, and it lets the linter run in a Claude Code hook without launching an editor.
 
@@ -53,6 +56,14 @@ Keeping `core` free of the VS Code API is a hard requirement: it makes the forma
 - It watches `.planmaster/lanes/*.md`, `.planmaster/archive/*.md` and `.planmaster/config.json`. Events are debounced (150 ms) and a refresh re-parses only the changed file, then rebuilds the index.
 - In a multi-root workspace each root with a `.planmaster/` directory is a separate queue, shown as separate groups.
 - A file that cannot be read or parsed never breaks the views. Findings are reported, and the lane is shown with the items that did parse.
+
+### 4.1 Language, activation and what is shown
+
+- Lane and archive files get their own language, `planmaster-lane` (a TextMate grammar colors markers, IDs and tokens). This replaces the Markdown language for those files only.
+- The extension activates when `.planmaster/config.json` or `.planmaster/lanes/*.md` exists in the workspace.
+- Diagnostics, the status bar and the decorations reflect the files **as saved on disk**, not unsaved editor buffers. Claude writes to disk, so this is the state that matters; unsaved edits show up on save.
+- In a multi-root workspace each folder has its own diagnostics collection and status bar item, prefixed with the folder name.
+- A broken `config.json` is shown as an error diagnostic on that file and in the status bar; the queue is not analysed until it is fixed.
 
 ## 5. Queue view
 
@@ -192,7 +203,7 @@ State, in `workspaceState`: the last-seen time and the expanded/collapsed state 
 - **Parser and lint (unit).** Fixture files: one valid file per feature, and one invalid file per lint code asserting the exact code, line and severity. The demo workspace in `docs/examples/demo-workspace/` is a fixture with known expected findings.
 - **Round trip of the grammar.** Every example in `docs/` that is shown as a queue line is extracted and parsed in a test, so the documentation cannot drift from the parser.
 - **Events (unit).** Table-driven: last seen before, between and after timestamps.
-- **Extension (integration).** With the VS Code test runner: open the demo workspace, assert diagnostics, the status bar text and that commands write nothing unless confirmed.
+- **Extension (integration).** `npm run test:extension` launches a real VS Code headless (xvfb) on a copy of the demo workspace and checks activation, diagnostics and their columns, the state summary, hover, go to definition, reaction to edits, creation and deletion of files, a broken `config.json`, and the command. These tests share one workspace and run in order; the logic they exercise is covered in isolation by the unit tests.
 - **Webview.** Escape tests with hostile titles (`<img onerror=...>`, very long strings, control characters).
 
 ## 14. Milestones
@@ -200,7 +211,7 @@ State, in `workspaceState`: the last-seen time and the expanded/collapsed state 
 | Milestone | Scope |
 |---|---|
 | **0.1** | `core` (parser, model, lint, events) with full tests; `cli`; demo workspace as fixture. |
-| **0.2** | Extension shell: watcher, diagnostics, status bar, decorations, grammar, go to definition and hover. |
+| **0.2** (done) | Extension shell: watcher, diagnostics, status bar, decorations, grammar, go to definition and hover, and the `Re-Check All Lanes` command. Tested inside VS Code. |
 | **0.3** | Queue view with the three tabs. |
 | **0.4** | Commands: init, install instructions, prompt commands, mark seen, reveal. |
 | **0.5** | Hook support: lint CLI usable from a Claude Code hook (see claude-integration section 7), packaging, marketplace metadata. |

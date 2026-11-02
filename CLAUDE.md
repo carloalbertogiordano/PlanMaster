@@ -43,7 +43,9 @@ A bug is fixed by first writing the test that reproduces it. Pure refactoring ne
 | `npm run typecheck` | Compiler without emitting. |
 | `npm run smells` | ESLint (typescript-eslint strict, SonarJS), jscpd (duplication), knip (dead code). |
 | `npm run coverage` | Unit tests with coverage thresholds (95% lines, 90% branches). |
-| `npm run check` | Everything above plus shuffle, time zones and integration. Run before every commit. |
+| `npm run bundle` | Bundles the extension into `dist/extension.cjs`. |
+| `npm run test:extension` | Runs the extension inside a real VS Code, headless through xvfb. Set `VSCODE_EXECUTABLE` to choose the binary. |
+| `npm run check` | Everything above plus shuffle, time zones, integration and the extension tests. Run before every commit. |
 
 ### Code smells
 
@@ -52,7 +54,7 @@ A bug is fixed by first writing the test that reproduces it. Pure refactoring ne
 ### Code conventions
 
 - TypeScript with `strict` and `noUncheckedIndexedAccess`. ES modules, imports use the `.js` suffix.
-- Layout: `src/core` is pure (no `node:` and no VS Code imports), `src/node` reads files, `src/cli` is the command-line entry point, `test/` mirrors them.
+- Layout: `src/core` is pure (no `node:` and no VS Code imports), `src/app` holds the editor-independent application logic behind ports (no VS Code imports), `src/node` reads files, `src/cli` is the command-line entry point, `src/extension` is the only code that imports `vscode` and contains translation only. `test/` mirrors them; what needs a real editor is in `scripts/extension-tests`.
 - Every lint rule has a test for the case that triggers it and for the nearest case that does not.
 - Parsing must stay linear in the length of its input. Avoid regular expressions with overlapping quantifiers.
 - Match the surrounding code: comments only where the reason is not obvious from the code.
@@ -76,5 +78,5 @@ A bug is fixed by first writing the test that reproduces it. Pure refactoring ne
 
 - The extension never writes to a lane file. Its views are read-only.
 - The files are the only source of truth. No parallel store.
-- `core` code never imports the VS Code API.
+- Only `src/extension` imports the VS Code API. Logic goes in `core` or `app`, where it is unit tested.
 - Text from lane files is untrusted. It is escaped everywhere it is displayed.

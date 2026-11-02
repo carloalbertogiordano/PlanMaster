@@ -1,0 +1,49 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "PlanMaster Lane",
+  "scopeName": "source.planmaster-lane",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#fence" },
+    { "include": "#front-matter-key" },
+    { "include": "#item" }
+  ],
+  "repository": {
+    "comment": {
+      "match": "^\\s*<!--.*-->\\s*$",
+      "name": "comment.block.planmaster"
+    },
+    "fence": {
+      "match": "^---\\s*$",
+      "name": "punctuation.definition.tag.planmaster"
+    },
+    "front-matter-key": {
+      "match": "^(format|lane|title)(:)\\s*(.*)$",
+      "captures": {
+        "1": { "name": "keyword.other.planmaster" },
+        "2": { "name": "punctuation.separator.planmaster" },
+        "3": { "name": "string.unquoted.planmaster" }
+      }
+    },
+    "item": {
+      "begin": "^(\\s*)(-)\\s(\\[)([ ~!x-])(\\])\\s+([A-Z][A-Z0-9]{0,3}-\\d+(?:[a-z][a-z0-9]*)?)(?=\\s|$)",
+      "beginCaptures": {
+        "2": { "name": "punctuation.definition.list.begin.markdown" },
+        "3": { "name": "punctuation.definition.bracket.planmaster" },
+        "4": { "name": "constant.character.planmaster.state" },
+        "5": { "name": "punctuation.definition.bracket.planmaster" },
+        "6": { "name": "entity.name.function.planmaster.id" }
+      },
+      "end": "$",
+      "patterns": [{ "include": "#token" }]
+    },
+    "token": {
+      "match": "(?<=\\s)(ref|wait|since|done)(:)(\\S+)",
+      "captures": {
+        "1": { "name": "variable.parameter.planmaster.key" },
+        "2": { "name": "punctuation.separator.planmaster" },
+        "3": { "name": "string.unquoted.planmaster.value" }
+      }
+    }
+  }
+}

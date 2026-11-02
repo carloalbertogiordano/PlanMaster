@@ -2,7 +2,7 @@
 
 A VS Code extension that shows the work of several long-running Claude Code chats as one visual queue: what each chat is doing now, what is next, what is blocked and on whom, what was closed, and what changed since you last looked.
 
-**Status: milestone 0.1.** The repository holds the specification, the prompts, a demo workspace, a visual mockup, and the core library (parser, linter, model, events) with a command-line checker. The VS Code extension itself is not written yet.
+**Status: milestone 0.2.** The repository holds the specification, the prompts, a demo workspace, a visual mockup, the core library (parser, linter, model, events), a command-line checker, and a working VS Code extension shell: diagnostics, status bar, focus decorations, syntax highlighting, hover and go to definition for `wait:` references. The queue view (milestone 0.3) is not written yet.
 
 ## The idea
 
@@ -52,7 +52,7 @@ Findings are printed to stderr as `file:line severity code message`, a summary t
 ## Roadmap
 
 1. **Done:** core library (`src/core`), disk loader (`src/node`) and command-line checker (`src/cli`), with tests on the demo workspace.
-2. Extension shell: watcher, Problems panel, status bar, editor decorations.
+2. **Done:** extension shell (`src/app`, `src/extension`): watcher, Problems panel, status bar, editor decorations, hover, go to definition.
 3. The queue view.
 4. Commands that install the instructions and copy the prompts.
 5. Hook support for automatic feedback to Claude.

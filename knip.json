@@ -3,6 +3,8 @@
     "src/cli/main.ts",
     "src/core/index.ts",
     "src/app/index.ts",
+    "src/extension/extension.ts",
+    "scripts/*.mjs",
     "test/**/*.test.ts"
   ],
   "project": [
