@@ -7,6 +7,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runTests } from '@vscode/test-electron';
 
+// On a Wayland desktop Electron would ignore the virtual display and open real windows on the user's screen.
+delete process.env.WAYLAND_DISPLAY;
+
 const root = fileURLToPath(new URL('..', import.meta.url));
 const scratch = mkdtempSync(path.join(tmpdir(), 'planmaster-extension-'));
 const workspace = path.join(scratch, 'workspace');
@@ -32,6 +35,7 @@ try {
       workspace,
       '--disable-extensions',
       '--disable-gpu',
+      '--ozone-platform=x11',
       '--no-sandbox',
       '--user-data-dir', path.join(scratch, 'user-data'),
       '--extensions-dir', path.join(scratch, 'extensions'),
