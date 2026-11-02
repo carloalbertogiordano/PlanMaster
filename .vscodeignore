@@ -1,0 +1,10 @@
+# Only what the extension needs at run time goes into the package.
+**
+!package.json
+!README.md
+!language-configuration.json
+!dist/extension.cjs
+!dist/webview.js
+!dist/planmaster-hook.cjs
+!media/**
+!syntaxes/**

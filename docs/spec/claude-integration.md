@@ -15,7 +15,7 @@ The queue is only useful if it is true, and the only writer is Claude. An instru
 | 3 | Lane start prompt | Tells a new chat which lane it is and where to resume | Pasted by the user once per chat |
 | 4 | Task prompts (migrate, plan to queue, reconcile, archive) | Precise instructions for occasional jobs | Pasted by the user when needed |
 | 5 | Lint feedback in the editor | Makes violations visible within seconds | None for Claude, attention for the user |
-| 6 | Hooks running the lint CLI (milestone 0.5) | Feeds errors back to Claude automatically | Configuration in the project |
+| 6 | Hooks (see section 7) | Feeds errors back to Claude automatically and tells a chat its lane | Installed into the project, opt-in |
 
 Layers 1 to 5 ship first. Layer 6 is added only if layers 1 to 5 prove insufficient in practice.
 
@@ -47,7 +47,7 @@ The block must stay under roughly 350 words, because it is loaded into every ses
 
 `CLAUDE.md` is shared by every chat in the project, so it cannot say "you are lane B". The identity of a chat comes from the **lane start prompt**, pasted as the first message of the chat. It states the lane ID and title, the file to write, where to resume, and the rules that matter most.
 
-An optional later improvement (milestone 0.5) is a session-start hook that injects the lane from an environment variable, so the first message is no longer needed. It does not change the format.
+The session-start hook (section 7) removes the need for that first message: a chat started with `PLANMASTER_LANE` set is told its lane automatically.
 
 ## 5. Writing discipline
 
@@ -89,16 +89,33 @@ The extension cannot prevent a violation, so it detects them:
 | Stray prose or reformatted file | PM016, PM001. |
 | A whole-file rewrite | Not detectable from the file; visible in `git diff` of `.planmaster/`. Because the directory is committed, history is the audit trail. |
 
-### Hooks (milestone 0.5)
+### Hooks
 
-If the passive checks are not enough, the lint CLI can run in a hook:
+The passive checks depend on someone looking. The hooks close that loop: they run inside Claude Code and send the findings back to the session that caused them. They are opt-in. The command `PlanMaster: Install Claude Code Hooks` shows the change to the project's `.claude/settings.json` and asks before writing.
 
-- A hook that runs after tool calls which modify a file under `.planmaster/lanes/` runs the linter on that file and, on errors, returns the findings to Claude so it corrects them in the same turn.
-- A hook that runs when Claude finishes a turn checks the lane's file and reports a stale `[~]` item.
+What is installed:
 
-Hooks are opt-in and configured by the user. They are specified here only so that the CLI's interface is designed for them from the start:
+- `.planmaster/hooks/planmaster-hook.cjs`, a single file with no dependencies, copied into the project. Because it lives in the project and is committed with it, it works for everyone who has the repository, with or without the extension.
+- Three entries in `.claude/settings.json`, each running `node "$CLAUDE_PROJECT_DIR/.planmaster/hooks/planmaster-hook.cjs" <name>`:
 
-- Findings go to stderr, one per line, in the stable form `file:line severity code message`, for example `.planmaster/lanes/B.md:12 error PM004 B-14 is blocked but has no wait: naming a person or an item ID`. Paths are relative to the workspace root.
+| Hook | When it runs | What it does |
+|---|---|---|
+| `post-edit` (PostToolUse, matcher `Edit\|Write\|MultiEdit`) | After a tool changed a file | If the file is a lane or archive file with errors, exits with code 2 and prints the findings, which Claude Code shows to the session so it fixes them in the same turn. Silent for any other file and for files with only warnings. |
+| `stop` (Stop) | When the session is about to finish | For a chat bound to a lane, if the lane file has errors or the item in progress is stale (PM012), exits with code 2 and asks for the queue to be brought up to date. Silent otherwise. |
+| `session-start` (SessionStart) | At the start of a session | For a chat bound to a lane, prints which lane it is together with the lane start prompt, which Claude Code adds to the context. This replaces pasting the start prompt. |
+
+Binding a chat to a lane: start it with `PLANMASTER_LANE` set, for example `PLANMASTER_LANE=B claude`. Without it, `stop` and `session-start` do nothing and only `post-edit` is active.
+
+Design rules:
+
+- **Never get in the way.** Input that is not valid, an event the hook was not wired to, a project without `.planmaster/`, or a workspace that cannot be analysed all end with exit code 0 and no output. A broken `config.json` is reported only when it is the file that was just edited. The only non-zero code other than 2 is 1, for an unknown hook name, which Claude Code shows as a non-blocking error.
+- **Ask once.** The `stop` hook does not ask twice for the same set of problems in the same session, so a session that cannot or will not fix them is not trapped. It also lets the session stop when Claude Code says it is already continuing because of a hook (`stop_hook_active`). What it already asked is kept per session and lane in a private directory (`PLANMASTER_STATE_DIR`, else the user's cache directory), never in the shared temporary directory.
+- **Only the edited file.** `post-edit` reports problems of the file just edited, not of other lanes, so one lane's mistakes do not interrupt another lane's chat.
+- **Review before installing.** The script runs on the machine of everyone who uses the project. The install command says so, shows the settings diff, and writes nothing if the settings file cannot be merged safely. Earlier PlanMaster entries are replaced, never duplicated, and every other setting and hook is kept.
+
+The command-line checker has the same findings in the same form, for use outside hooks:
+
+- Findings go to stderr, one per line, as `file:line severity code message`, for example `.planmaster/lanes/B.md:12 error PM004 B-14 is blocked but has no wait: naming a person or an item ID`. Paths are relative to the workspace root.
 - A one-line summary goes to stdout.
 - Exit code `0` when there are no errors (warnings allowed), `1` when there is at least one error, `2` for usage or configuration errors.
 - `--json` prints the findings as a JSON array on stdout instead.
@@ -121,5 +138,5 @@ See [../prompts/migrate-todo.md](../prompts/migrate-todo.md).
 | The managed block is ignored when the context is large. | Keep it short; repeat the critical rules in the start prompt; detect violations through the linter. |
 | Chats write to the wrong lane. | The start prompt names the file; PM003 flags IDs with another lane's prefix. |
 | Claude edits the block between the markers. | The extension overwrites it on the next install and shows a diff first. |
-| The user stops pasting start prompts. | The hook-based identity injection (milestone 0.5) removes the step. |
+| The user stops pasting start prompts. | The session-start hook (section 7) removes the step. |
 | Format drift as the prompts evolve. | The prompts and the format are versioned together; a test extracts every queue line shown in the docs and parses it. |

@@ -2,7 +2,7 @@
 
 A VS Code extension that shows the work of several long-running Claude Code chats as one visual queue: what each chat is doing now, what is next, what is blocked and on whom, what was closed, and what changed since you last looked.
 
-**Status: milestone 0.4.** The repository holds the specification, the prompts, a demo workspace, a visual mockup, the core library (parser, linter, model, events), a command-line checker, and a working VS Code extension shell: diagnostics, status bar, focus decorations, syntax highlighting, hover and go to definition for `wait:` references, and the queue view in the sidebar (Stack, Blocked and What's new tabs). Commands initialize a workspace, install the instructions into `CLAUDE.md` (with a diff and a confirmation), copy the prompts that tell Claude how to use the queue, and reveal any item. The hooks and the packaged extension (milestone 0.5) are not written yet.
+**Status: milestone 0.5, complete.** The repository holds the specification, the prompts, a demo workspace, a visual mockup, the core library (parser, linter, model, events), a command-line checker, and a working VS Code extension shell: diagnostics, status bar, focus decorations, syntax highlighting, hover and go to definition for `wait:` references, and the queue view in the sidebar (Stack, Blocked and What's new tabs). Commands initialize a workspace, install the instructions into `CLAUDE.md` (with a diff and a confirmation), copy the prompts that tell Claude how to use the queue, and reveal any item. Hooks for Claude Code send queue errors back to the session that caused them and tell a chat which lane it is, and the extension can be packed into a `.vsix`.
 
 ## The idea
 
@@ -39,6 +39,16 @@ title: Automated checks, gates and ratchets
 
 `[ ]` todo, `[~]` in progress, `[!]` blocked, `[x]` done, `[-]` dropped.
 
+## Getting started
+
+1. Build and install the extension: `npm install`, `npm run package`, then `code --install-extension dist-vsix/planmaster.vsix`.
+2. In your project, run **PlanMaster: Initialize Workspace** from the command palette. It creates `.planmaster/` and, if you like, your first lane.
+3. Run **PlanMaster: Install Instructions in CLAUDE.md** so that every session knows the format. You see the change before it is written.
+4. Optionally run **PlanMaster: Install Claude Code Hooks** so that mistakes in the queue are sent back to the session that made them. Review the change: the script it adds runs on the machine of everyone who uses the project.
+5. Start each chat bound to its lane, for example `PLANMASTER_LANE=B claude`. Without the hooks, use **PlanMaster: Copy Lane Start Prompt** and paste it as the first message.
+6. To bring an existing to-do document into the queue, use **PlanMaster: Copy Migration Prompt**. It works in two steps and never changes the source document.
+7. Open the PlanMaster view in the activity bar to see what each chat is doing, what is blocked and on whom, and what changed since you last looked.
+
 ## Command-line checker
 
 ```sh
@@ -55,7 +65,7 @@ Findings are printed to stderr as `file:line severity code message`, a summary t
 2. **Done:** extension shell (`src/app`, `src/extension`): watcher, Problems panel, status bar, editor decorations, hover, go to definition.
 3. **Done:** the queue view: stack, blocked and what's-new tabs, with reveal and mark as seen.
 4. **Done:** commands that initialize a workspace, install the instructions and copy the prompts.
-5. Hook support for automatic feedback to Claude.
+5. **Done:** hooks for automatic feedback to the sessions, and the packaged extension.
 
 See [docs/spec/extension.md](docs/spec/extension.md#14-milestones) for the details.
 

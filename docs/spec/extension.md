@@ -166,6 +166,7 @@ All commands are in the palette under the category "PlanMaster". None edits a la
 | Command ID | Title | Behavior |
 |---|---|---|
 | `planmaster.initWorkspace` | Initialize Workspace | Creates `.planmaster/`, a default `config.json`, `FORMAT.md` (from the format reference template), and optionally one lane file after asking for lane ID and title. Shows what it will create and asks before writing. Never overwrites an existing file. |
+| `planmaster.installHooks` | Install Claude Code Hooks | Copies the hook program into `.planmaster/hooks/` and adds the hooks to `.claude/settings.json`, after showing the change and warning that the script runs on the machine of everyone who uses the project. Never overwrites other settings. |
 | `planmaster.installInstructions` | Install Instructions in CLAUDE.md | Inserts or updates the managed block (see claude-integration section 3). Shows a diff and asks before writing. |
 | `planmaster.copyLanePrompt` | Copy Lane Start Prompt | Asks for a lane (or takes the selected one) and copies the start prompt filled in with the lane's ID, title and the configured people. |
 | `planmaster.copyMigratePrompt` | Copy Migration Prompt | Asks for the source file (file picker) and copies the migration prompt. |
@@ -233,11 +234,11 @@ State, in `workspaceState`: the last-seen time and the expanded/collapsed state 
 | **0.2** (done) | Extension shell: watcher, diagnostics, status bar, decorations, grammar, go to definition and hover, and the `Re-Check All Lanes` command. Tested inside VS Code. |
 | **0.3** (done) | Queue view with the three tabs, tested inside VS Code: the page draws under the content security policy, reveals items, marks the feed as seen and shows a configuration error. Also ships the `Mark Everything as Seen` command. |
 | **0.4** (done) | Commands: initialize, install instructions, the five prompt commands, reveal item. The command flows run behind ports and are unit tested; the real diff, clipboard, file writes and refusal on damaged markers are tested inside VS Code. |
-| **0.5** | Hook support: lint CLI usable from a Claude Code hook (see claude-integration section 7), packaging, marketplace metadata. |
+| **0.5** (done) | Hooks for Claude Code (see claude-integration section 7), the command that installs them, and the packaged extension. The package is verified by running the extension tests against the unpacked `.vsix`. Publishing to the marketplace is out of scope. |
 
 ## 15. Open questions
 
 1. **Webview or native tree for the queue view.** Decided for the webview (section 5), to be revisited after 0.3 if maintenance cost is high.
 2. **Multi-root workspaces.** Specified as separate queues. Whether to offer a merged view is left open.
 3. **Remote and container workspaces.** The extension should run on the workspace side so files are read where they live. To be verified in 0.2.
-4. **Marketplace publication.** Out of scope until 0.5.
+4. **Marketplace publication.** Out of scope: the extension is packed locally into a `.vsix`.

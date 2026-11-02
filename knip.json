@@ -12,5 +12,8 @@
   "project": [
     "src/**/*.ts",
     "test/**/*.ts"
+  ],
+  "ignoreDependencies": [
+    "@vscode/vsce"
   ]
 }

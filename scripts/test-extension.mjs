@@ -24,7 +24,8 @@ try {
   cpSync(path.join(root, 'docs', 'examples', 'demo-workspace'), workspace, { recursive: true });
   await runTests({
     vscodeExecutablePath: findVsCode(),
-    extensionDevelopmentPath: root,
+    // Normally the source tree; the package test points this at the unpacked .vsix.
+    extensionDevelopmentPath: process.env.PLANMASTER_EXTENSION_PATH ? path.resolve(root, process.env.PLANMASTER_EXTENSION_PATH) : root,
     extensionTestsPath: path.join(root, 'scripts', 'extension-tests', 'index.cjs'),
     extensionTestsEnv: { PLANMASTER_TEST_WORKSPACE: workspace, PLANMASTER_TEST_REPORT: reportFile },
     launchArgs: [

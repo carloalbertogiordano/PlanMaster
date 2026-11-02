@@ -1,8 +1,8 @@
 {
   "name": "planmaster",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "private": true,
-  "description": "Visual queue of Claude Code lane work for VS Code. Core library and command-line checker.",
+  "description": "Visual queue of the work of several long-running chats in VS Code, with hooks that keep the queue accurate.",
   "type": "module",
   "engines": {
     "node": ">=20",
@@ -24,10 +24,12 @@
     "test:shuffle": "vitest run --project unit --sequence.shuffle",
     "test:tz": "node scripts/test-tz.mjs",
     "coverage": "vitest run --project unit --coverage",
-    "check": "npm run typecheck && npm run smells && npm run coverage && npm run test:shuffle && npm run test:tz && npm run test:integration && npm run test:extension",
+    "check": "npm run typecheck && npm run smells && npm run coverage && npm run test:shuffle && npm run test:tz && npm run test:integration && npm run test:extension && npm run test:package",
     "lint:demo": "npm run build && node out/cli/main.js docs/examples/demo-workspace --now 2026-11-02T11:48 --mtime E=2026-11-02T08:07",
     "bundle": "node scripts/bundle.mjs",
-    "test:extension": "npm run bundle && xvfb-run -a node scripts/test-extension.mjs"
+    "test:extension": "npm run bundle && xvfb-run -a node scripts/test-extension.mjs",
+    "package": "node scripts/package.mjs",
+    "test:package": "npm run package && node scripts/verify-package.mjs && PLANMASTER_EXTENSION_PATH=dist-vsix/unpacked/extension xvfb-run -a node scripts/test-extension.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -35,6 +37,7 @@
     "@types/vscode": "^1.90.0",
     "@vitest/coverage-v8": "^2.1.9",
     "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.1.0",
     "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
     "eslint-plugin-sonarjs": "^4.2.2",
