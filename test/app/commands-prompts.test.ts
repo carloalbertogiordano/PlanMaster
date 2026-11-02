@@ -5,13 +5,13 @@ import { revealItem } from '../../src/app/commands/reveal.js';
 import { fillTemplate } from '../../src/app/prompts.js';
 import { archiveFile, laneFile, run } from '../helpers.js';
 import { FakeUi, MemoryFiles, type Script } from '../support/fake-ui.js';
-import { TEMPLATES } from '../support/templates.js';
+import { HOOK_SCRIPT, TEMPLATES } from '../support/templates.js';
 
 const CONFIG = JSON.stringify({ people: ['alice', 'bob'], doneVisibleDays: 5, archiveAfterDays: 21 });
 
 function context(script: Script, files = [laneFile('A', '- [~] A-1 One since:2026-11-02T10:00'), laneFile('B', '- [ ] B-1 Two')]): CommandContext & { ui: FakeUi } {
   const analysis = run(files, undefined, CONFIG);
-  return { ui: new FakeUi(script), files: new MemoryFiles(), templates: TEMPLATES, analysis };
+  return { ui: new FakeUi(script), files: new MemoryFiles(), templates: TEMPLATES, hookScript: HOOK_SCRIPT, analysis };
 }
 
 describe('copyLaneStartPrompt', () => {

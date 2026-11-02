@@ -1,3 +1,4 @@
+export { installHooks } from './hooks.js';
 export { initWorkspace } from './init.js';
 export { installInstructions } from './install.js';
 export { copyArchivePrompt, copyLaneStartPrompt, copyMigrationPrompt, copyPlanToQueuePrompt, copyReconcilePrompt } from './prompts.js';

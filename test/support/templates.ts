@@ -11,3 +11,6 @@ export const TEMPLATES: Templates = loadTemplates({
   reconcile: read('docs/prompts/reconcile.md'),
   archive: read('docs/prompts/archive.md'),
 });
+
+/** Stands in for the bundled hook script. */
+export const HOOK_SCRIPT = '// planmaster hook script\n';

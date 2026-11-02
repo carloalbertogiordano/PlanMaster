@@ -5,10 +5,10 @@ import { installInstructions } from '../../src/app/commands/install.js';
 import { parseConfig } from '../../src/core/index.js';
 import { laneFile, run } from '../helpers.js';
 import { FakeUi, MemoryFiles, type Script } from '../support/fake-ui.js';
-import { TEMPLATES } from '../support/templates.js';
+import { HOOK_SCRIPT, TEMPLATES } from '../support/templates.js';
 
 function context(script: Script, files = new MemoryFiles(), analysis = run([])): CommandContext & { ui: FakeUi; files: MemoryFiles } {
-  return { ui: new FakeUi(script), files, templates: TEMPLATES, analysis };
+  return { ui: new FakeUi(script), files, templates: TEMPLATES, hookScript: HOOK_SCRIPT, analysis };
 }
 
 const FORMAT_FILE = `${TEMPLATES.formatReference}\n`;

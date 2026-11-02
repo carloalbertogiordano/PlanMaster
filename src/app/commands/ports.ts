@@ -42,6 +42,8 @@ export interface CommandContext {
   ui: UserInterface;
   files: WorkspaceFiles;
   templates: Templates;
+  /** The text of the hook script that the hooks run; it is copied into the project. */
+  hookScript: string;
   /** The current analysis of the folder, if it could be made. */
   analysis: Analysis | undefined;
 }
