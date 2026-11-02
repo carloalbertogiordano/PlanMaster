@@ -11,7 +11,7 @@ const HOUR = 3_600_000;
 
 let workspace: string;
 let script: string;
-const sessions: string[] = [];
+let stateDir: string;
 
 function lane(id: string, title: string, body: string): string {
   return `---\nformat: 1\nlane: ${id}\ntitle: ${title}\n---\n\n${body}\n`;
@@ -29,6 +29,7 @@ beforeAll(() => {
   if (bundle.status !== 0) throw new Error(`bundle failed:\n${bundle.stdout}${bundle.stderr}`);
 
   workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'planmaster-hook-'));
+  stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'planmaster-state-'));
   fs.mkdirSync(path.join(workspace, 'docs'));
   fs.mkdirSync(path.join(workspace, '.planmaster', 'hooks'), { recursive: true });
   fs.writeFileSync(path.join(workspace, '.planmaster', 'config.json'), '{"people":["alice"]}');
@@ -45,16 +46,16 @@ beforeAll(() => {
 
 afterAll(() => {
   fs.rmSync(workspace, { recursive: true, force: true });
-  for (const session of sessions) fs.rmSync(path.join(os.tmpdir(), `planmaster-hook-${session}.json`), { force: true });
+  fs.rmSync(stateDir, { recursive: true, force: true });
 });
 
 function hook(event: string, payload: unknown, env: Record<string, string> = {}, cwd = workspace) {
   const stdin = typeof payload === 'string' ? payload : JSON.stringify(payload);
-  const run = spawnSync(process.execPath, [script, event], { input: stdin, cwd, encoding: 'utf8', env: { ...process.env, PLANMASTER_LANE: '', ...env } });
+  const run = spawnSync(process.execPath, [script, event], { input: stdin, cwd, encoding: 'utf8', env: { ...process.env, PLANMASTER_LANE: '', PLANMASTER_STATE_DIR: stateDir, ...env } });
   return { code: run.status, stdout: run.stdout, stderr: run.stderr };
 }
 
-const payloadFor = (event: string, extra: object = {}): object => ({ session_id: 'it-session', transcript_path: '/tmp/t.jsonl', cwd: workspace, permission_mode: 'default', hook_event_name: event, ...extra });
+const payloadFor = (event: string, extra: object = {}): object => ({ session_id: 'it-session', transcript_path: path.join(workspace, 'transcript.jsonl'), cwd: workspace, permission_mode: 'default', hook_event_name: event, ...extra });
 const edit = (file: string): object => payloadFor('PostToolUse', { tool_name: 'Edit', tool_input: { file_path: file, old_string: 'a', new_string: 'b' }, tool_response: { success: true } });
 const lanePath = (id: string): string => path.join(workspace, '.planmaster', 'lanes', `${id}.md`);
 
@@ -79,7 +80,6 @@ describe('the hook program, as Claude Code runs it', () => {
 
   it('stop asks a chat bound to a lane to update a queue it has not touched for hours, once', () => {
     const session = `it-stop-${process.pid}`;
-    sessions.push(session);
     const payload = payloadFor('Stop', { session_id: session, stop_hook_active: false });
 
     const first = hook('stop', payload, { PLANMASTER_LANE: 'E' });
@@ -94,7 +94,6 @@ describe('the hook program, as Claude Code runs it', () => {
   it('stop leaves a healthy lane and an unbound chat alone', () => {
     expect(hook('stop', payloadFor('Stop', { session_id: `it-a-${process.pid}` }), { PLANMASTER_LANE: 'A' }).code).toBe(0);
     expect(hook('stop', payloadFor('Stop', { session_id: `it-b-${process.pid}` })).code).toBe(0);
-    sessions.push(`it-a-${process.pid}`, `it-b-${process.pid}`);
   });
 
   it('session-start tells a chat bound to a lane which lane it is, on stdout', () => {

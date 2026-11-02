@@ -6,29 +6,14 @@ import os from 'node:os';
 import path from 'node:path';
 import { TEMPLATES } from '../bundled/templates.js';
 import { loadWorkspace } from '../node/load.js';
-import { runHook, type AskedGuard } from './hook-runner.js';
+import { fileGuard, stateDirectory } from './guard.js';
+import { runHook } from './hook-runner.js';
 
 function findRoot(start: string): string | null {
   for (let directory = path.resolve(start); ; directory = path.dirname(directory)) {
     if (fs.existsSync(path.join(directory, '.planmaster'))) return directory;
     if (path.dirname(directory) === directory) return null;
   }
-}
-
-/** Kept in the temporary directory, so nothing is added to the project. */
-function fileGuard(): AskedGuard {
-  const fileFor = (session: string): string => path.join(os.tmpdir(), `planmaster-hook-${session.replace(/[^A-Za-z0-9_-]/g, '_') || 'session'}.json`);
-  const read = (session: string): Record<string, string> => {
-    try {
-      return JSON.parse(fs.readFileSync(fileFor(session), 'utf8')) as Record<string, string>;
-    } catch {
-      return {};
-    }
-  };
-  return {
-    get: (session, lane) => read(session)[lane],
-    set: (session, lane, fingerprint) => { fs.writeFileSync(fileFor(session), JSON.stringify({ ...read(session), [lane]: fingerprint })); },
-  };
 }
 
 const result = runHook({
@@ -39,7 +24,7 @@ const result = runHook({
   laneStartTemplate: TEMPLATES.laneStart,
   findRoot,
   load: (root) => loadWorkspace(root).input,
-  guard: fileGuard(),
+  guard: fileGuard(stateDirectory(process.env, os.homedir(), process.platform)),
 });
 process.stdout.write(result.stdout);
 process.stderr.write(result.stderr);
