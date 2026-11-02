@@ -85,7 +85,7 @@ After the front matter, blank lines and HTML comments (`<!-- ... -->`, single li
 Grammar, as a regular expression with named groups:
 
 ```
-^(?<indent>(?: {2})*)- \[(?<marker>[ ~!x-])\] (?<id>[A-Z][A-Z0-9]{0,3}-[0-9]+[a-z0-9]*) (?<rest>\S.*)$
+^(?<indent>(?: {2})*)- \[(?<marker>[ ~!x-])\] (?<id>[A-Z][A-Z0-9]{0,3}-\d+(?:[a-z][a-z0-9]*)?) (?<rest>\S.*)$
 ```
 
 `rest` is split into title and tokens by reading words from the right: while the last whitespace-separated word matches `^(ref|wait|since|done):\S+$`, it is a token and is removed. What remains is the title. Consequences:
@@ -95,6 +95,8 @@ Grammar, as a regular expression with named groups:
 - Titles may contain colons and any other characters, but must not end with a word that looks like a known token.
 - The same key may appear only once per line (PM001).
 - Canonical token order is `ref`, `wait`, `since`, `done`. The parser accepts any order; tools that write lines use the canonical order.
+
+The ID suffix after the number must start with a letter, which describes the same set of IDs as "digits followed by lowercase letters and digits" but lets a parser match in linear time. Parsers must stay linear in the length of a line, because lane files are written by a model and may contain arbitrary text.
 
 Indentation is two spaces per level. The first item of a file is at level 0, a child is exactly one level deeper than its parent, and the maximum level is 3 (so four levels in total: 0, 1, 2, 3). Anything else is PM001 or PM019.
 

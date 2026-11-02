@@ -1,4 +1,4 @@
-import type { Finding, Severity } from './types.js';
+import type { Finding, Location, Severity } from './types.js';
 
 /** Default severity of each rule, as listed in docs/spec/queue-format.md section 12. */
 export const RULE_SEVERITY: Readonly<Record<string, Severity>> = {
@@ -30,10 +30,10 @@ export interface FindingOptions {
   severity?: Severity;
 }
 
-export function finding(code: string, file: string, line: number, message: string, options: FindingOptions = {}): Finding {
+export function finding(code: string, at: Location, message: string, options: FindingOptions = {}): Finding {
   const severity = options.severity ?? RULE_SEVERITY[code];
   if (!severity) throw new Error(`Unknown rule ${code}`);
-  const result: Finding = { code, severity, file, line, message };
+  const result: Finding = { code, severity, file: at.file, line: at.line, message };
   if (options.itemId !== undefined) result.itemId = options.itemId;
   return result;
 }

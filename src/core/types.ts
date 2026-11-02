@@ -44,6 +44,12 @@ export interface LaneFile {
   mtimeMs?: number | undefined;
 }
 
+export interface Location {
+  file: string;
+  /** 1-based line number. */
+  line: number;
+}
+
 export interface Finding {
   code: string;
   severity: Severity;

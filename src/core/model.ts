@@ -31,7 +31,7 @@ export function analyze(input: WorkspaceInput, now: number): Analysis {
     (source.kind === 'lane' ? lanes : archives).push(result.file);
   }
   for (const file of input.unreadable ?? []) {
-    findings.push(finding('PM021', file.path, 1, `File could not be read: ${file.reason}`));
+    findings.push(finding('PM021', { file: file.path, line: 1 }, `File could not be read: ${file.reason}`));
   }
 
   const byLane = (a: LaneFile, b: LaneFile): number => a.lane.localeCompare(b.lane);
@@ -97,28 +97,30 @@ export interface BlockedGroup {
  * then blocked items with no reason. Oldest block first inside a group.
  */
 export function blockedGroups(analysis: Analysis): BlockedGroup[] {
-  const people = new Map<string, Item[]>();
+  const byPerson = new Map<string, Item[]>();
   const dependencies: Item[] = [];
   const missing: Item[] = [];
 
-  for (const lane of analysis.lanes) {
-    for (const item of lane.items) {
-      if (item.marker !== '!') continue;
-      const wait = item.tokens.wait;
-      if (wait === undefined) missing.push(item);
-      else if (ITEM_ID.test(wait)) dependencies.push(item);
-      else people.set(wait, [...(people.get(wait) ?? []), item]);
-    }
+  for (const item of analysis.lanes.flatMap((lane) => lane.items)) {
+    if (item.marker !== '!') continue;
+    const wait = item.tokens.wait;
+    if (wait === undefined) missing.push(item);
+    else if (ITEM_ID.test(wait)) dependencies.push(item);
+    else byPerson.set(wait, [...(byPerson.get(wait) ?? []), item]);
   }
 
-  const configured = analysis.config.people.filter((p) => people.has(p));
-  const others = [...people.keys()].filter((p) => !analysis.config.people.includes(p)).sort();
-  const groups: BlockedGroup[] = [...configured, ...others].map((key) => ({ kind: 'person', key, items: people.get(key) ?? [] }));
+  const groups: BlockedGroup[] = personKeys(byPerson, analysis.config.people).map((key) => ({ kind: 'person', key, items: byPerson.get(key) ?? [] }));
   if (dependencies.length > 0) groups.push({ kind: 'item', key: '', items: dependencies });
   if (missing.length > 0) groups.push({ kind: 'missing', key: '', items: missing });
 
   for (const group of groups) group.items.sort(bySince);
   return groups;
+}
+
+function personKeys(byPerson: Map<string, Item[]>, configured: string[]): string[] {
+  const known = configured.filter((person) => byPerson.has(person));
+  const others = [...byPerson.keys()].filter((person) => !configured.includes(person)).sort((a, b) => a.localeCompare(b));
+  return [...known, ...others];
 }
 
 function bySince(a: Item, b: Item): number {
@@ -160,9 +162,7 @@ export function summarize(analysis: Analysis): Summary {
     summary.open += counts.open;
     summary.blocked += counts.blocked;
     if (laneFocus(lane)) summary.lanesActive++;
-    if (lane.mtimeMs !== undefined && (summary.newestChangeMs === null || lane.mtimeMs > summary.newestChangeMs)) {
-      summary.newestChangeMs = lane.mtimeMs;
-    }
+    summary.newestChangeMs = newest(summary.newestChangeMs, lane.mtimeMs);
   }
   for (const f of analysis.findings) {
     if (f.severity === 'error') summary.errors++;
@@ -170,4 +170,9 @@ export function summarize(analysis: Analysis): Summary {
     if (f.code === 'PM012') summary.stale++;
   }
   return summary;
+}
+
+function newest(current: number | null, candidate: number | undefined): number | null {
+  if (candidate === undefined) return current;
+  return current === null || candidate > current ? candidate : current;
 }

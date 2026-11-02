@@ -163,6 +163,42 @@ describe('malformed lines', () => {
   });
 });
 
+describe('hostile input', () => {
+  // Lane files are written by a model and may be arbitrary, so parsing time must stay linear in the file size.
+  const LIMIT_MS = 300;
+  const LINE_SEPARATOR = String.fromCharCode(0x2028);
+  const elapsed = (work: () => void): number => {
+    const start = performance.now();
+    work();
+    return performance.now() - start;
+  };
+
+  it('parses a very long digit run in an ID quickly', () => {
+    const line = `- [ ] B-${'1'.repeat(60_000)}!`;
+    expect(elapsed(() => parse(line))).toBeLessThan(LIMIT_MS);
+  });
+
+  it('parses a very long front matter value with an unusual terminator quickly', () => {
+    const text = `---\nformat: 1\nlane: B\ntitle: Test lane title\nnote:${' \t'.repeat(40_000)}${LINE_SEPARATOR}\n---\n`;
+    expect(elapsed(() => parseRaw(text))).toBeLessThan(LIMIT_MS);
+  });
+
+  it('parses a very long title with many token-like words quickly', () => {
+    const line = `- [ ] B-1 ${'ref:x '.repeat(30_000)}end`;
+    expect(elapsed(() => parse(line))).toBeLessThan(LIMIT_MS);
+  });
+
+  it('parses a very long run of trailing tokens quickly', () => {
+    const line = `- [ ] B-1 Title ${'ref:x '.repeat(30_000)}ref:y`;
+    expect(elapsed(() => parse(line))).toBeLessThan(LIMIT_MS);
+  });
+
+  it('parses a very long comment-like line quickly', () => {
+    const line = `<!--${'-->  '.repeat(30_000)}x`;
+    expect(elapsed(() => parse(line))).toBeLessThan(LIMIT_MS);
+  });
+});
+
 describe('front matter', () => {
   it('reads format, lane and title', () => {
     const { file, findings } = parse('- [ ] B-1 Item');

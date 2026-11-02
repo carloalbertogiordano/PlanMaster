@@ -3,16 +3,20 @@ import { finding, type FindingOptions } from './findings.js';
 import { parseTimestamp } from './time.js';
 import type { Finding, FrontMatter, Item, LaneFile, Marker, SourceFile, Tokens } from './types.js';
 
-export const ITEM_LINE = /^(?<indent>(?: {2})*)- \[(?<marker>[ ~!x-])\] (?<id>[A-Z][A-Z0-9]{0,3}-[0-9]+[a-z0-9]*) (?<rest>\S.*)$/;
-const LOOSE_ITEM_LINE = /^\s*- \[/;
-const COMMENT_LINE = /^\s*<!--.*-->\s*$/;
-const TRAILING_TOKEN = /(?:^|\s)(ref|wait|since|done):(\S+)$/;
-const FRONT_MATTER_KEY = /^([A-Za-z][\w-]*):[ \t]*(.*)$/;
-
+// Every pattern below is anchored and free of overlapping quantifiers, so matching is linear in the line length.
+// The ID suffix must start with a letter: `\d+` followed by `[a-z0-9]*` would let digits match either part.
+export const ITEM_LINE = /^(?<indent>(?: {2})*)- \[(?<marker>[ ~!x-])\] (?<id>[A-Z][A-Z0-9]{0,3}-\d+(?:[a-z][a-z0-9]*)?) (?<rest>\S.*)$/;
 export const LANE_ID = /^[A-Z][A-Z0-9]{0,3}$/;
-export const ITEM_ID = /^[A-Z][A-Z0-9]{0,3}-[0-9]+[a-z0-9]*$/;
+export const ITEM_ID = /^[A-Z][A-Z0-9]{0,3}-\d+(?:[a-z][a-z0-9]*)?$/;
+const LOOSE_ITEM_LINE = /^\s*- \[/;
+const TOKEN_WORD = /^(ref|wait|since|done):(\S+)$/;
+const KEY_NAME = /^[A-Za-z][\w-]*$/;
+const WHITESPACE = /\s/;
+
 export const MAX_DEPTH = 3;
 export const MAX_TITLE_LENGTH = 120;
+/** Four token keys exist; more trailing tokens than this cannot be meaningful. */
+const MAX_TRAILING_TOKENS = 8;
 const FRONT_MATTER_KEYS = new Set(['format', 'lane', 'title']);
 
 export interface ParseResult {
@@ -22,6 +26,11 @@ export interface ParseResult {
 
 type Report = (code: string, line: number, message: string, options?: FindingOptions) => void;
 
+interface FrontMatterEntry {
+  value: string;
+  line: number;
+}
+
 export function laneFromPath(path: string): string {
   const base = path.replace(/\\/g, '/').split('/').pop() ?? path;
   return base.replace(/\.md$/, '');
@@ -30,7 +39,7 @@ export function laneFromPath(path: string): string {
 export function parseLaneFile(source: SourceFile): ParseResult {
   const findings: Finding[] = [];
   const report: Report = (code, line, message, options) => {
-    findings.push(finding(code, source.path, line, message, options));
+    findings.push(finding(code, { file: source.path, line }, message, options));
   };
 
   const lane = laneFromPath(source.path);
@@ -50,6 +59,8 @@ export function parseLaneFile(source: SourceFile): ParseResult {
   return { file, findings };
 }
 
+/* ---------- front matter ---------- */
+
 function parseFrontMatter(lines: string[], lane: string, report: Report) {
   const frontMatter: FrontMatter = { unknownKeys: [] };
 
@@ -58,162 +69,208 @@ function parseFrontMatter(lines: string[], lane: string, report: Report) {
     return { frontMatter, bodyStart: 0, readable: true };
   }
 
-  const values = new Map<string, { value: string; line: number }>();
-  let closedAt = -1;
-  for (let i = 1; i < lines.length; i++) {
-    const text = lines[i] ?? '';
-    if (text === '---') {
-      closedAt = i;
-      break;
-    }
-    if (text.trim() === '') continue;
-    const m = FRONT_MATTER_KEY.exec(text);
-    if (!m) {
-      report('PM017', i + 1, `Malformed front matter line: ${text}`);
-      continue;
-    }
-    const key = m[1] as string;
-    const value = (m[2] ?? '').trim();
-    if (values.has(key)) {
-      report('PM017', i + 1, `Front matter key "${key}" appears twice`);
-      continue;
-    }
-    values.set(key, { value, line: i + 1 });
-    if (!FRONT_MATTER_KEYS.has(key)) {
-      frontMatter.unknownKeys.push(key);
-      report('PM017', i + 1, `Unknown front matter key "${key}"`, { severity: 'warning' });
-    }
-  }
-
+  const { entries, closedAt } = readFrontMatterBlock(lines, frontMatter, report);
   if (closedAt < 0) {
     report('PM017', 1, 'Front matter is not closed with a --- line');
     return { frontMatter, bodyStart: lines.length, readable: true };
   }
 
-  const format = values.get('format');
-  const laneEntry = values.get('lane');
-  const title = values.get('title');
-  let readable = true;
-
-  if (!format) {
-    report('PM017', 1, 'Front matter has no "format" key');
-  } else if (!/^\d+$/.test(format.value)) {
-    report('PM017', format.line, `format must be an integer, got "${format.value}"`);
-  } else {
-    frontMatter.format = format.value;
-    if (Number(format.value) > SUPPORTED_FORMAT) {
-      report('PM017', format.line, `Format ${format.value} is newer than the supported format ${SUPPORTED_FORMAT}; the file is not read`);
-      readable = false;
-    }
-  }
-
-  if (!laneEntry) {
-    report('PM017', 1, 'Front matter has no "lane" key');
-  } else {
-    frontMatter.lane = laneEntry.value;
-    if (!LANE_ID.test(laneEntry.value)) {
-      report('PM017', laneEntry.line, `Lane "${laneEntry.value}" is not a valid lane ID`);
-    } else if (laneEntry.value !== lane) {
-      report('PM017', laneEntry.line, `Lane "${laneEntry.value}" does not match the file name "${lane}"`);
-    }
-  }
-
-  if (!title) {
-    report('PM017', 1, 'Front matter has no "title" key');
-  } else {
-    frontMatter.title = title.value;
-    if (title.value.length < 3 || title.value.length > 80) {
-      report('PM017', title.line, 'Lane title must be 3 to 80 characters');
-    }
-  }
-
+  const readable = checkFormat(entries.get('format'), frontMatter, report);
+  checkLane(entries.get('lane'), lane, frontMatter, report);
+  checkTitle(entries.get('title'), frontMatter, report);
   return { frontMatter, bodyStart: closedAt + 1, readable };
 }
 
-function parseItems(lines: string[], bodyStart: number, file: LaneFile, report: Report): void {
-  const stack: Item[] = [];
+interface FrontMatterBlock {
+  entries: Map<string, FrontMatterEntry>;
+  frontMatter: FrontMatter;
+  report: Report;
+}
 
-  for (let i = bodyStart; i < lines.length; i++) {
+function readFrontMatterBlock(lines: string[], frontMatter: FrontMatter, report: Report) {
+  const block: FrontMatterBlock = { entries: new Map(), frontMatter, report };
+  for (let i = 1; i < lines.length; i++) {
     const text = lines[i] ?? '';
-    const line = i + 1;
-    if (text.trim() === '' || COMMENT_LINE.test(text)) continue;
+    if (text === '---') return { entries: block.entries, closedAt: i };
+    if (text.trim() !== '') readFrontMatterLine(text, i + 1, block);
+  }
+  return { entries: block.entries, closedAt: -1 };
+}
 
-    const m = ITEM_LINE.exec(text);
-    if (!m || !m.groups) {
-      if (LOOSE_ITEM_LINE.test(text)) {
-        report('PM001', line, 'Malformed item line: check the indentation (two spaces per level), the marker, the ID and the spacing');
-      } else {
-        report('PM016', line, `Line is not an item, a blank line or a comment: ${truncate(text)}`);
-      }
-      continue;
-    }
-
-    const id = m.groups.id as string;
-    const marker = m.groups.marker as Marker;
-    const requestedDepth = (m.groups.indent as string).length / 2;
-    const { title, tokens, duplicated } = splitRest(m.groups.rest as string);
-
-    let depth = requestedDepth;
-    const maxAllowed = stack.length;
-    if (depth > maxAllowed) {
-      report('PM001', line, stack.length === 0
-        ? `${id} is indented but has no parent item`
-        : `${id} is indented more than one level deeper than the previous item`, { itemId: id });
-      depth = maxAllowed;
-    }
-    if (depth > MAX_DEPTH) {
-      report('PM019', line, `${id} is nested ${depth} levels deep; the maximum is ${MAX_DEPTH}`, { itemId: id });
-    }
-
-    const parent = depth > 0 ? (stack[depth - 1] ?? null) : null;
-    const item: Item = {
-      id,
-      marker,
-      title,
-      tokens,
-      depth,
-      line,
-      parent,
-      children: [],
-      lane: file.lane,
-      file: file.path,
-    };
-    stack.length = depth;
-    stack[depth] = item;
-    if (parent) parent.children.push(item);
-    else file.roots.push(item);
-    file.items.push(item);
-
-    for (const key of duplicated) {
-      report('PM001', line, `Token "${key}:" appears more than once on ${id}`, { itemId: id });
-    }
-    if (title === '') report('PM001', line, `${id} has no title`, { itemId: id });
-    if (title.length > MAX_TITLE_LENGTH) {
-      report('PM020', line, `${id} has a title of ${title.length} characters; move long context to a document linked with ref:`, { itemId: id });
-    }
-    for (const key of ['since', 'done'] as const) {
-      const value = tokens[key];
-      if (value !== undefined && parseTimestamp(value) === null) {
-        report('PM014', line, `${id}: ${key}:${value} is not a valid YYYY-MM-DDTHH:MM timestamp`, { itemId: id });
-      }
+function readFrontMatterLine(text: string, line: number, { entries, frontMatter, report }: FrontMatterBlock): void {
+  const pair = splitKeyValue(text);
+  if (!pair) {
+    report('PM017', line, `Malformed front matter line: ${truncate(text)}`);
+  } else if (entries.has(pair.key)) {
+    report('PM017', line, `Front matter key "${pair.key}" appears twice`);
+  } else {
+    entries.set(pair.key, { value: pair.value, line });
+    if (!FRONT_MATTER_KEYS.has(pair.key)) {
+      frontMatter.unknownKeys.push(pair.key);
+      report('PM017', line, `Unknown front matter key "${pair.key}"`, { severity: 'warning' });
     }
   }
 }
 
-/** Splits the text after the ID into the title and its trailing tokens, reading from the right. */
+function splitKeyValue(text: string): { key: string; value: string } | null {
+  const colon = text.indexOf(':');
+  if (colon < 1) return null;
+  const key = text.slice(0, colon);
+  return KEY_NAME.test(key) ? { key, value: text.slice(colon + 1).trim() } : null;
+}
+
+/** Returns whether the file may be read: a newer format is refused. */
+function checkFormat(entry: FrontMatterEntry | undefined, frontMatter: FrontMatter, report: Report): boolean {
+  if (!entry) {
+    report('PM017', 1, 'Front matter has no "format" key');
+    return true;
+  }
+  if (!/^\d+$/.test(entry.value)) {
+    report('PM017', entry.line, `format must be an integer, got "${entry.value}"`);
+    return true;
+  }
+  frontMatter.format = entry.value;
+  if (Number(entry.value) <= SUPPORTED_FORMAT) return true;
+  report('PM017', entry.line, `Format ${entry.value} is newer than the supported format ${SUPPORTED_FORMAT}; the file is not read`);
+  return false;
+}
+
+function checkLane(entry: FrontMatterEntry | undefined, lane: string, frontMatter: FrontMatter, report: Report): void {
+  if (!entry) {
+    report('PM017', 1, 'Front matter has no "lane" key');
+    return;
+  }
+  frontMatter.lane = entry.value;
+  if (!LANE_ID.test(entry.value)) {
+    report('PM017', entry.line, `Lane "${entry.value}" is not a valid lane ID`);
+  } else if (entry.value !== lane) {
+    report('PM017', entry.line, `Lane "${entry.value}" does not match the file name "${lane}"`);
+  }
+}
+
+function checkTitle(entry: FrontMatterEntry | undefined, frontMatter: FrontMatter, report: Report): void {
+  if (!entry) {
+    report('PM017', 1, 'Front matter has no "title" key');
+    return;
+  }
+  frontMatter.title = entry.value;
+  if (entry.value.length < 3 || entry.value.length > 80) {
+    report('PM017', entry.line, 'Lane title must be 3 to 80 characters');
+  }
+}
+
+/* ---------- items ---------- */
+
+function parseItems(lines: string[], bodyStart: number, file: LaneFile, report: Report): void {
+  const stack: Item[] = [];
+  for (let i = bodyStart; i < lines.length; i++) {
+    const text = lines[i] ?? '';
+    const line = i + 1;
+    if (isIgnorable(text)) continue;
+
+    const groups = ITEM_LINE.exec(text)?.groups;
+    if (groups) readItem(groups, line, { file, stack, report });
+    else reportUnparsable(text, line, report);
+  }
+}
+
+interface ItemContext {
+  file: LaneFile;
+  stack: Item[];
+  report: Report;
+}
+
+function readItem(groups: Record<string, string | undefined>, line: number, context: ItemContext): void {
+  const id = groups.id ?? '';
+  const { title, tokens, duplicated } = splitRest(groups.rest ?? '');
+  const requestedDepth = (groups.indent ?? '').length / 2;
+  const item: Item = {
+    id,
+    marker: (groups.marker ?? ' ') as Marker,
+    title,
+    tokens,
+    depth: 0,
+    line,
+    parent: null,
+    children: [],
+    lane: context.file.lane,
+    file: context.file.path,
+  };
+  attachItem(item, requestedDepth, context);
+  checkItemContent(item, duplicated, context.report);
+}
+
+/** Places the item in the tree, repairing impossible indentation so later lines still attach sensibly. */
+function attachItem(item: Item, requestedDepth: number, { file, stack, report }: ItemContext): void {
+  const depth = Math.min(requestedDepth, stack.length);
+  if (requestedDepth > depth) {
+    const reason = stack.length === 0 ? 'is indented but has no parent item' : 'is indented more than one level deeper than the previous item';
+    report('PM001', item.line, `${item.id} ${reason}`, { itemId: item.id });
+  }
+  if (depth > MAX_DEPTH) {
+    report('PM019', item.line, `${item.id} is nested ${depth} levels deep; the maximum is ${MAX_DEPTH}`, { itemId: item.id });
+  }
+
+  item.depth = depth;
+  item.parent = depth > 0 ? (stack[depth - 1] ?? null) : null;
+  stack.length = depth;
+  stack[depth] = item;
+  if (item.parent) item.parent.children.push(item);
+  else file.roots.push(item);
+  file.items.push(item);
+}
+
+function checkItemContent(item: Item, duplicated: string[], report: Report): void {
+  const options = { itemId: item.id };
+  for (const key of duplicated) {
+    report('PM001', item.line, `Token "${key}:" appears more than once on ${item.id}`, options);
+  }
+  if (item.title === '') report('PM001', item.line, `${item.id} has no title`, options);
+  if (item.title.length > MAX_TITLE_LENGTH) {
+    report('PM020', item.line, `${item.id} has a title of ${item.title.length} characters; move long context to a document linked with ref:`, options);
+  }
+  for (const key of ['since', 'done'] as const) {
+    const value = item.tokens[key];
+    if (value !== undefined && parseTimestamp(value) === null) {
+      report('PM014', item.line, `${item.id}: ${key}:${value} is not a valid YYYY-MM-DDTHH:MM timestamp`, options);
+    }
+  }
+}
+
+function isIgnorable(text: string): boolean {
+  const trimmed = text.trim();
+  return trimmed === '' || (trimmed.length >= 7 && trimmed.startsWith('<!--') && trimmed.endsWith('-->'));
+}
+
+function reportUnparsable(text: string, line: number, report: Report): void {
+  if (LOOSE_ITEM_LINE.test(text)) {
+    report('PM001', line, 'Malformed item line: check the indentation (two spaces per level), the marker, the ID and the spacing');
+  } else {
+    report('PM016', line, `Line is not an item, a blank line or a comment: ${truncate(text)}`);
+  }
+}
+
+/** Splits the text after the ID into the title and its trailing tokens, reading words from the right. */
 function splitRest(rest: string): { title: string; tokens: Tokens; duplicated: string[] } {
   const tokens: Tokens = {};
   const duplicated: string[] = [];
   let remaining = rest.trimEnd();
-  for (;;) {
-    const t = TRAILING_TOKEN.exec(remaining);
-    if (!t) break;
-    const key = t[1] as keyof Tokens;
+  for (let peeled = 0; peeled < MAX_TRAILING_TOKENS; peeled++) {
+    const start = lastWordStart(remaining);
+    const match = TOKEN_WORD.exec(remaining.slice(start));
+    if (!match) break;
+    const key = match[1] as keyof Tokens;
     if (key in tokens) duplicated.push(key);
-    else tokens[key] = t[2] as string;
-    remaining = remaining.slice(0, t.index).trimEnd();
+    else tokens[key] = match[2] ?? '';
+    remaining = remaining.slice(0, start).trimEnd();
   }
   return { title: remaining, tokens, duplicated };
+}
+
+function lastWordStart(text: string): number {
+  let start = text.length;
+  while (start > 0 && !WHITESPACE.test(text.charAt(start - 1))) start--;
+  return start;
 }
 
 function truncate(text: string): string {
