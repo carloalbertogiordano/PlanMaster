@@ -99,6 +99,11 @@
         "category": "PlanMaster"
       },
       {
+        "command": "planmaster.installHooks",
+        "title": "Install Claude Code Hooks",
+        "category": "PlanMaster"
+      },
+      {
         "command": "planmaster.copyLanePrompt",
         "title": "Copy Lane Start Prompt",
         "category": "PlanMaster"

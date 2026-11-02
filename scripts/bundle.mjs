@@ -24,3 +24,16 @@ await build({
   format: 'iife',
   target: 'es2022',
 });
+
+// The program the Claude Code hooks run. It is a single file with no dependencies, because it is copied into
+// the project (.planmaster/hooks/) and must work without the extension or node_modules.
+await build({
+  ...common,
+  sourcemap: false,
+  entryPoints: ['src/cli/hook.ts'],
+  outfile: 'dist/planmaster-hook.cjs',
+  platform: 'node',
+  format: 'cjs',
+  target: 'node20',
+  loader: { '.md': 'text' },
+});

@@ -133,7 +133,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<PlanMa
   const manager = new InstanceManager(context, output);
   const provider = new QueueViewProvider(context.extensionUri, () => manager.all());
   manager.setChangeListener(() => { provider.push(); });
-  const commands = new CommandRegistry(manager);
+  const commands = new CommandRegistry(manager, context.extensionUri);
   commands.register(context);
   const selector: vscode.DocumentSelector = { language: LANGUAGE };
 

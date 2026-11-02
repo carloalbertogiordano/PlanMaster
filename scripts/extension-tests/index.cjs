@@ -5,6 +5,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const vscode = require('vscode');
 const fsSync = require('node:fs');
+const { spawnSync } = require('node:child_process');
 
 const workspace = process.env.PLANMASTER_TEST_WORKSPACE;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -189,7 +190,7 @@ const tests = [
 
   ['registers every PlanMaster command', async () => {
     const commands = await vscode.commands.getCommands(true);
-    for (const id of ['initWorkspace', 'installInstructions', 'copyLanePrompt', 'copyMigratePrompt', 'copyPlanToQueuePrompt', 'copyReconcilePrompt', 'copyArchivePrompt', 'revealItem', 'markSeen', 'runLint']) {
+    for (const id of ['initWorkspace', 'installInstructions', 'copyLanePrompt', 'copyMigratePrompt', 'copyPlanToQueuePrompt', 'copyReconcilePrompt', 'copyArchivePrompt', 'revealItem', 'installHooks', 'markSeen', 'runLint']) {
       assert.ok(commands.includes(`planmaster.${id}`), `planmaster.${id} is not registered`);
     }
   }],
@@ -258,6 +259,33 @@ const tests = [
     ui = scriptedUi(api, { picks: [labelIs('C · Work plans, drafting and review')] });
     assert.equal(await vscode.commands.executeCommand('planmaster.copyArchivePrompt'), 'done');
     assert.match(ui.copied[0], /more than 14 days before now/);
+  }],
+
+  ['installs the Claude Code hooks, and the copied script then really blocks an error', async (api) => {
+    const extensionPath = vscode.extensions.getExtension('planmaster.planmaster').extensionPath;
+    const ui = scriptedUi(api, { confirm: true });
+    assert.equal(await vscode.commands.executeCommand('planmaster.installHooks'), 'done');
+
+    const script = fileUri('.planmaster/hooks/planmaster-hook.cjs').fsPath;
+    assert.equal(await fs.readFile(script, 'utf8'), await fs.readFile(path.join(extensionPath, 'dist', 'planmaster-hook.cjs'), 'utf8'));
+    const settings = JSON.parse(await fs.readFile(fileUri('.claude/settings.json').fsPath, 'utf8'));
+    assert.deepEqual(Object.keys(settings.hooks).sort(), ['PostToolUse', 'SessionStart', 'Stop']);
+    assert.equal(settings.hooks.PostToolUse[0].matcher, 'Edit|Write|MultiEdit');
+    assert.match(settings.hooks.Stop[0].hooks[0].command, /planmaster-hook\.cjs" stop$/);
+    assert.match(ui.confirmations[0].detail, /will run this script on your machine/);
+    assert.ok(vscode.window.tabGroups.activeTabGroup.activeTab.input instanceof vscode.TabInputTextDiff);
+
+    // The script that was copied into the project is the one Claude Code would run.
+    const broken = fileUri('.planmaster/lanes/G.md').fsPath;
+    await fs.writeFile(broken, '---\nformat: 1\nlane: G\ntitle: Broken on purpose\n---\n\n- [!] G-1 No reason given\n');
+    const payload = { session_id: 'ext', cwd: workspace, hook_event_name: 'PostToolUse', tool_name: 'Write', tool_input: { file_path: broken } };
+    const run = spawnSync(process.execPath, [script, 'post-edit'], { input: JSON.stringify(payload), encoding: 'utf8' });
+    assert.equal(run.status, 2);
+    assert.match(run.stderr, /G\.md:7 error PM004/);
+    await fs.rm(broken);
+
+    scriptedUi(api, {});
+    assert.equal(await vscode.commands.executeCommand('planmaster.installHooks'), 'nothing');
   }],
 
   ['reveals any item by ID', async (api) => {

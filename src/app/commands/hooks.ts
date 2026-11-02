@@ -13,7 +13,7 @@ interface Plan {
  * confirmed first, because the script runs on the machine of everyone who
  * uses the project.
  */
-export async function installHooks({ ui, files, hookScript }: CommandContext): Promise<CommandStatus> {
+export async function installHooks({ ui, files, readHookScript }: CommandContext): Promise<CommandStatus> {
   const before = await files.read(SETTINGS_PATH);
   const merge = mergeHookSettings(before);
   if (merge.kind === 'refuse') {
@@ -21,6 +21,7 @@ export async function installHooks({ ui, files, hookScript }: CommandContext): P
     return 'refused';
   }
 
+  const hookScript = await readHookScript();
   const plan: Plan = {
     script: (await files.read(HOOK_SCRIPT_PATH)) === hookScript ? null : hookScript,
     settings: merge.kind === 'unchanged' ? null : merge.text,

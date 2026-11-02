@@ -6,7 +6,8 @@
     "src/extension/extension.ts",
     "src/webview/main.ts",
     "scripts/*.mjs",
-    "test/**/*.test.ts"
+    "test/**/*.test.ts",
+    "src/cli/hook.ts"
   ],
   "project": [
     "src/**/*.ts",

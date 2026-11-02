@@ -11,7 +11,7 @@ const CONFIG = JSON.stringify({ people: ['alice', 'bob'], doneVisibleDays: 5, ar
 
 function context(script: Script, files = [laneFile('A', '- [~] A-1 One since:2026-11-02T10:00'), laneFile('B', '- [ ] B-1 Two')]): CommandContext & { ui: FakeUi } {
   const analysis = run(files, undefined, CONFIG);
-  return { ui: new FakeUi(script), files: new MemoryFiles(), templates: TEMPLATES, hookScript: HOOK_SCRIPT, analysis };
+  return { ui: new FakeUi(script), files: new MemoryFiles(), templates: TEMPLATES, readHookScript: () => Promise.resolve(HOOK_SCRIPT), analysis };
 }
 
 describe('copyLaneStartPrompt', () => {
