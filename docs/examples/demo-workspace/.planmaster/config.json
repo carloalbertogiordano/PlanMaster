@@ -1,0 +1,7 @@
+{
+  "format": 1,
+  "people": ["alice", "bob", "carol"],
+  "staleAfterMinutes": 120,
+  "doneVisibleDays": 3,
+  "archiveAfterDays": 14
+}

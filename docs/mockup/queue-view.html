@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PlanMaster queue view mockup</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+/* Layout: simulated VS Code window (activity bar, queue on the left, lane file on the right, status bar), then the commands that instruct Claude. */
+:root {
+  --page: #eceef3;
+  --win: #ffffff;
+  --side: #f4f5f9;
+  --edit: #fdfdfe;
+  --line: #dde1ea;
+  --fg: #1b2132;
+  --mut: #667088;
+  --faint: #98a0b3;
+  --doing: #2358d6;
+  --doing-bg: #e6edfd;
+  --block: #a8560a;
+  --block-bg: #fcefd9;
+  --done: #17803d;
+  --done-bg: #e1f3e7;
+  --err: #c0302b;
+  --err-bg: #fbe5e3;
+  --status: #2358d6;
+  --status-fg: #ffffff;
+  --sel: #dfe6f7;
+  --k: #7a4fb3;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-code: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0b0e14;
+    --win: #131722;
+    --side: #171c28;
+    --edit: #101420;
+    --line: #262d3d;
+    --fg: #dce1ee;
+    --mut: #8b94aa;
+    --faint: #5d667c;
+    --doing: #7aa5ff;
+    --doing-bg: #1a2644;
+    --block: #f1b45f;
+    --block-bg: #372a12;
+    --done: #62c585;
+    --done-bg: #14301f;
+    --err: #ff8078;
+    --err-bg: #3b1b1a;
+    --status: #1f4fc4;
+    --status-fg: #ffffff;
+    --sel: #232f4d;
+    --k: #b794f0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #0b0e14;
+  --win: #131722;
+  --side: #171c28;
+  --edit: #101420;
+  --line: #262d3d;
+  --fg: #dce1ee;
+  --mut: #8b94aa;
+  --faint: #5d667c;
+  --doing: #7aa5ff;
+  --doing-bg: #1a2644;
+  --block: #f1b45f;
+  --block-bg: #372a12;
+  --done: #62c585;
+  --done-bg: #14301f;
+  --err: #ff8078;
+  --err-bg: #3b1b1a;
+  --status: #1f4fc4;
+  --status-fg: #ffffff;
+  --sel: #232f4d;
+  --k: #b794f0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--fg); font-family: var(--font-ui); font-size: 14px; line-height: 1.45; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--doing); outline-offset: 1px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.intro { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; margin-bottom: 14px; }
+.intro h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.intro p { margin: 0; color: var(--mut); font-size: 13px; }
+
+.window { background: var(--win); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; height: min(88vh, 760px); min-height: 600px; box-shadow: 0 10px 30px rgba(20,28,50,.10); }
+.titlebar { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--line); background: var(--side); font-size: 12px; color: var(--mut); }
+.titlebar .dots { display: flex; gap: 6px; }
+.titlebar .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); display: block; }
+.titlebar .ttl { flex: 1; text-align: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.body { flex: 1; display: grid; grid-template-columns: 44px 372px minmax(0, 1fr); min-height: 0; }
+.activity { background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 8px; }
+.activity span { width: 44px; height: 40px; display: grid; place-items: center; color: var(--faint); border-left: 2px solid transparent; }
+.activity span.on { color: var(--fg); border-left-color: var(--doing); }
+.activity svg { width: 20px; height: 20px; }
+
+.side { background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.side-h { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mut); font-weight: 600; }
+.vtabs { display: flex; gap: 2px; padding: 0 10px 8px; border-bottom: 1px solid var(--line); }
+.vtab { padding: 5px 10px; border-radius: 6px; font-size: 13px; color: var(--mut); display: flex; gap: 6px; align-items: center; }
+.vtab:hover { background: var(--sel); }
+.vtab[aria-selected="true"] { background: var(--sel); color: var(--fg); font-weight: 500; }
+.vtab .n { font-family: var(--font-code); font-size: 11px; padding: 0 5px; border-radius: 8px; background: var(--line); color: var(--fg); }
+.vtab .n.warn { background: var(--block-bg); color: var(--block); }
+.vtab .n.new { background: var(--doing-bg); color: var(--doing); }
+.list { flex: 1; overflow-y: auto; padding: 8px 8px 16px; min-height: 0; }
+
+.lane { background: var(--win); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+.lane-h { display: grid; grid-template-columns: auto 1fr auto; gap: 9px; align-items: start; padding: 9px 10px 8px; }
+.badge { font-family: var(--font-code); font-weight: 700; font-size: 12px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 5px; background: var(--fg); color: var(--win); flex: none; }
+.badge.sm { width: 18px; height: 18px; font-size: 10px; border-radius: 4px; }
+.lane-t { font-size: 13px; font-weight: 500; line-height: 1.3; min-width: 0; text-wrap: balance; }
+.lane-c { font-family: var(--font-code); font-size: 11px; color: var(--mut); padding-top: 2px; white-space: nowrap; }
+.bar { height: 3px; background: var(--line); display: flex; }
+.bar i { display: block; height: 100%; }
+.bar .d { background: var(--done); }
+.bar .p { background: var(--doing); }
+.lane-b { padding: 4px 4px 2px; }
+.sub { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 6px 8px 2px; font-weight: 600; }
+.lane-f { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 6px 10px 8px; border-top: 1px solid var(--line); font-size: 12px; color: var(--mut); }
+.lane-f .sp { flex: 1; }
+.lane-f .tg { color: var(--doing); font-weight: 500; }
+.lane-f .tg:hover { text-decoration: underline; }
+.empty { color: var(--mut); font-size: 12.5px; padding: 8px; }
+
+.row { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; width: 100%; padding: 5px 8px 5px calc(8px + var(--d, 0) * 16px); border-radius: 6px; align-items: start; }
+.row:hover { background: var(--sel); }
+.row.is-sel { background: var(--sel); box-shadow: inset 2px 0 0 var(--doing); }
+.row .ic { width: 16px; height: 16px; margin-top: 2px; }
+.row .rid { font-family: var(--font-code); font-size: 11.5px; color: var(--mut); margin-right: 6px; }
+.row .rt { font-size: 13px; }
+.row.st-doing .rt { font-weight: 500; }
+.row.st-done .rt, .row.st-done .rid, .row.st-drop .rt, .row.st-drop .rid { color: var(--faint); }
+.row.st-done .rt, .row.st-drop .rt { text-decoration: line-through; text-decoration-color: var(--line); }
+.meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.chip { font-family: var(--font-code); font-size: 10.5px; padding: 1px 6px; border-radius: 4px; background: var(--line); color: var(--mut); white-space: nowrap; }
+.chip.doing { background: var(--doing-bg); color: var(--doing); }
+.chip.block { background: var(--block-bg); color: var(--block); }
+.chip.done { background: var(--done-bg); color: var(--done); }
+.chip.err { background: var(--err-bg); color: var(--err); }
+.chip.stale { background: var(--block-bg); color: var(--block); }
+.st-todo .ic, .st-drop .ic { color: var(--faint); }
+.st-doing .ic { color: var(--doing); }
+.st-block .ic { color: var(--block); }
+.st-done .ic { color: var(--done); }
+.ic .inv { fill: var(--win); }
+
+.grp { margin-bottom: 12px; }
+.grp-h { display: flex; align-items: center; gap: 8px; padding: 4px 8px; font-size: 12px; font-weight: 600; }
+.grp-h .who { font-size: 13px; }
+.grp-h .n { font-family: var(--font-code); font-size: 11px; color: var(--mut); font-weight: 400; }
+.grp.err .grp-h { color: var(--err); }
+.laneTag { display: inline-flex; vertical-align: middle; margin-right: 6px; }
+.news-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 8px 10px; font-size: 12.5px; color: var(--mut); }
+.btn { border: 1px solid var(--line); background: var(--win); border-radius: 6px; padding: 4px 10px; font-size: 12px; color: var(--fg); }
+.btn:hover { background: var(--sel); }
+.ev { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 6px; padding: 5px 8px; border-radius: 6px; width: 100%; }
+.ev:hover { background: var(--sel); }
+.ev time { font-family: var(--font-code); font-size: 11px; color: var(--mut); padding-top: 2px; }
+.ev b { font-weight: 600; }
+.ev .k-done { color: var(--done); }
+.ev .k-start { color: var(--doing); }
+.ev .k-block { color: var(--block); }
+.ev .k-drop { color: var(--mut); }
+.ev .evt { color: var(--mut); font-size: 12.5px; }
+
+.editor { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--edit); }
+.etabs { display: flex; background: var(--side); border-bottom: 1px solid var(--line); overflow-x: auto; flex: none; }
+.etab { padding: 8px 14px; font-family: var(--font-code); font-size: 12px; color: var(--mut); border-right: 1px solid var(--line); border-top: 2px solid transparent; display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+.etab[aria-selected="true"] { background: var(--edit); color: var(--fg); border-top-color: var(--doing); margin-bottom: -1px; }
+.etab .dot { width: 7px; height: 7px; border-radius: 50%; }
+.etab .dot.e { background: var(--err); }
+.etab .dot.w { background: var(--block); }
+.crumb { padding: 6px 14px; font-size: 11.5px; color: var(--faint); border-bottom: 1px solid var(--line); font-family: var(--font-code); flex: none; }
+.code { flex: 1; overflow: auto; position: relative; padding: 8px 0; font-family: var(--font-code); font-size: 12.5px; line-height: 1.7; min-height: 0; }
+.ln { display: flex; white-space: pre; padding-right: 24px; min-width: max-content; }
+.ln .no { flex: none; width: 46px; text-align: right; padding-right: 14px; color: var(--faint); user-select: none; position: relative; }
+.ln .tx { flex: 1; }
+.ln.is-doing { background: color-mix(in srgb, var(--doing-bg) 55%, transparent); }
+.ln.is-doing .no::before { content: ""; position: absolute; left: 8px; top: 50%; transform: translateY(-50%); border-left: 7px solid var(--doing); border-top: 4.5px solid transparent; border-bottom: 4.5px solid transparent; }
+.ln.is-sel { background: var(--sel); outline: 1px solid var(--doing); outline-offset: -1px; }
+.ln.l-err .id, .ln.l-err .ti { text-decoration: underline wavy var(--err); text-underline-offset: 3px; }
+.ln.l-warn .id, .ln.l-warn .ti { text-decoration: underline wavy var(--block); text-underline-offset: 3px; }
+.c-fm { color: var(--faint); }
+.c-k { color: var(--k); }
+.id { color: var(--fg); font-weight: 700; }
+.ti { color: var(--fg); }
+.mk-todo { color: var(--mut); }
+.mk-doing { color: var(--doing); font-weight: 700; }
+.mk-block { color: var(--block); font-weight: 700; }
+.mk-done { color: var(--done); font-weight: 700; }
+.mk-drop { color: var(--faint); font-weight: 700; }
+.kv .k { color: var(--k); }
+.kv .v { color: var(--doing); }
+.kv.wait .v { color: var(--block); }
+.kv.done .v { color: var(--done); }
+.dim { color: var(--faint); }
+
+.probs { border-top: 1px solid var(--line); background: var(--side); flex: none; max-height: 168px; display: flex; flex-direction: column; }
+.probs-h { padding: 6px 14px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mut); font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.probs-h .n { font-family: var(--font-code); background: var(--err-bg); color: var(--err); border-radius: 8px; padding: 0 6px; }
+.probs-l { overflow-y: auto; padding: 0 6px 6px; }
+.prob { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; align-items: start; width: 100%; padding: 4px 8px; border-radius: 5px; font-size: 12.5px; }
+.prob:hover { background: var(--sel); }
+.prob .pi { width: 14px; height: 14px; margin-top: 3px; }
+.prob.e .pi { color: var(--err); }
+.prob.w .pi { color: var(--block); }
+.prob .code-id { font-family: var(--font-code); font-size: 11px; color: var(--mut); margin-right: 6px; }
+.prob .loc { font-family: var(--font-code); font-size: 11px; color: var(--mut); white-space: nowrap; padding-top: 2px; }
+.none { padding: 6px 14px 10px; color: var(--mut); font-size: 12.5px; }
+
+.status { display: flex; flex-wrap: wrap; gap: 4px 18px; padding: 4px 12px; background: var(--status); color: var(--status-fg); font-size: 12px; align-items: center; }
+.status .sp { flex: 1; }
+.status b { font-weight: 600; }
+.status .mono { font-family: var(--font-code); font-size: 11.5px; }
+
+.cmds { margin-top: 28px; }
+.cmds h2 { font-size: 17px; margin: 0 0 4px; font-weight: 600; }
+.cmds > p { color: var(--mut); margin: 0 0 14px; max-width: 70ch; }
+.cmd-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: start; }
+.panel { background: var(--win); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.cmd-list { list-style: none; margin: 0; padding: 6px; }
+.cmd-list li { padding: 9px 10px; display: grid; gap: 2px; }
+.cmd-list li + li { border-top: 1px solid var(--line); }
+.cmd-list .nm { font-family: var(--font-code); font-size: 12.5px; font-weight: 500; }
+.cmd-list .nm i { font-style: normal; color: var(--mut); }
+.cmd-list .ds { color: var(--mut); font-size: 12.5px; }
+.pb-h { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.pb-h .vtabs { padding: 0; border: 0; }
+.pb-h .sp { flex: 1; }
+.pb-h label { font-size: 12.5px; color: var(--mut); display: flex; gap: 6px; align-items: center; }
+select { font: inherit; font-size: 12.5px; color: var(--fg); background: var(--win); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; max-width: 220px; }
+.pb-t { margin: 0; padding: 12px 14px; font-family: var(--font-code); font-size: 12px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 360px; overflow: auto; }
+.pb-f { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--mut); }
+.legend { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--mut); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.legend svg { width: 14px; height: 14px; }
+
+@media (max-width: 960px) {
+  .window { height: auto; min-height: 0; }
+  .body { grid-template-columns: 1fr; }
+  .activity { display: none; }
+  .side { border-right: 0; border-bottom: 1px solid var(--line); }
+  .list { max-height: 520px; }
+  .editor { min-height: 460px; }
+  .code { max-height: 360px; }
+  .cmd-grid { grid-template-columns: 1fr; }
+  .titlebar .dots { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .row, .ln, .vtab, .btn { transition: background-color .12s; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="intro">
+    <h1>PlanMaster queue view</h1>
+    <p>Read-only preview with the data of docs/examples/demo-workspace, at 11:48 on 2 Nov. Click an item to jump to its line in the lane file.</p>
+  </div>
+
+  <div class="window" role="group" aria-label="Simulated VS Code window">
+    <div class="titlebar">
+      <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="ttl" id="ttl">B.md — PlanMaster — Visual Studio Code</div>
+    </div>
+    <div class="body">
+      <nav class="activity" aria-hidden="true">
+        <span class="on"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 5h12M4 10h12M4 15h7"/><circle cx="15" cy="15" r="2" fill="currentColor"/></svg></span>
+        <span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3h7l3 3v11H5z"/><path d="M12 3v3h3"/></svg></span>
+        <span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="9" cy="9" r="5"/><path d="M13 13l4 4"/></svg></span>
+      </nav>
+
+      <aside class="side" aria-label="Work queue">
+        <div class="side-h"><span>Work queue</span><span id="sideSub">5 lanes</span></div>
+        <div class="vtabs" role="tablist" id="vtabs"></div>
+        <div class="list" id="list"></div>
+      </aside>
+
+      <section class="editor" aria-label="Lane file">
+        <div class="etabs" role="tablist" id="etabs"></div>
+        <div class="crumb" id="crumb"></div>
+        <div class="code" id="code" tabindex="0" aria-label="Lane file content"></div>
+        <div class="probs">
+          <div class="probs-h"><span>Problems</span><span class="n" id="probN">0</span></div>
+          <div class="probs-l" id="probs"></div>
+        </div>
+      </section>
+    </div>
+    <footer class="status" id="status"></footer>
+  </div>
+
+  <div class="legend" aria-label="Marker legend">
+    <span id="lg-todo"></span><span id="lg-doing"></span><span id="lg-block"></span><span id="lg-done"></span><span id="lg-drop"></span>
+  </div>
+
+  <section class="cmds">
+    <h2>What Claude is told</h2>
+    <p>The extension never writes to the queue. It generates the instructions, keeps them up to date, and shows in the Problems panel when Claude does not follow them.</p>
+    <div class="cmd-grid">
+      <div class="panel">
+        <ul class="cmd-list">
+          <li><span class="nm">PlanMaster: <i>Install Instructions in CLAUDE.md</i></span><span class="ds">Writes or updates the managed block between its two markers, after showing a diff. The rest of the file is untouched.</span></li>
+          <li><span class="nm">PlanMaster: <i>Copy Lane Start Prompt</i></span><span class="ds">For a new chat: tells it which lane is its own, where to write and where to resume.</span></li>
+          <li><span class="nm">PlanMaster: <i>Copy Migration Prompt</i></span><span class="ds">Extracts open items from an existing to-do document into lanes. Keeps your IDs as <code>ref:</code>, leaves the prose alone.</span></li>
+          <li><span class="nm">PlanMaster: <i>Copy Plan-to-Queue Prompt</i></span><span class="ds">After plan mode, turns the approved plan into queue items.</span></li>
+          <li><span class="nm">PlanMaster: <i>Copy Reconcile Prompt</i></span><span class="ds">Asks Claude to compare a lane with files, tests and git, and to correct items that are wrong.</span></li>
+          <li><span class="nm">PlanMaster: <i>Copy Archive Prompt</i></span><span class="ds">Moves closed subtrees older than N days to the archive.</span></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="pb-h">
+          <div class="vtabs" role="tablist" id="ptabs"></div>
+          <span class="sp"></span>
+          <label id="laneSel"><span>Lane</span><select id="laneSelect" aria-label="Lane to generate the prompt for"></select></label>
+        </div>
+        <pre class="pb-t" id="ptext"></pre>
+        <div class="pb-f"><button class="btn" id="copyBtn" type="button">Copy to clipboard</button><span id="copyMsg" role="status"></span></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var NOW = Date.parse('2026-11-02T11:48');
+  var lastVisit = Date.parse('2026-11-02T09:15');
+  var TODAY = '2026-11-02T';
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var T = function (s) { return s.length <= 5 ? TODAY + s : s; };
+  var I = function (st, id, title, kv, kids) { return { st: st, id: id, title: title, kv: kv || {}, kids: kids || [] }; };
+
+  // Same data as docs/examples/demo-workspace/.planmaster/lanes/*.md
+  var LANES = [
+    { id: 'A', title: 'Requirements matrix, counts and citations', updated: T('11:44'), items: [
+      I('~', 'A-07', 'Regenerate the matrix counts', { since: T('11:20') }, [
+        I('x', 'A-07a', 'Run the count script', { done: T('11:22') }),
+        I('~', 'A-07b', 'Re-read 8.2.2 and 8.3.1 after the recount', { since: T('11:40') }),
+        I('', 'A-07c', 'Regenerate the Counts block')
+      ]),
+      I('', 'A-08', 'Split open requirements by who can close them'),
+      I('!', 'A-09', 'Close 6.3.4 and 6.2.9 with an identity provider read', { wait: 'bob', since: '2026-10-31T18:00' }),
+      I('x', 'A-06', 'Fix broken citations, 653 of 653 resolve', { done: T('09:10') })
+    ]},
+    { id: 'B', title: 'Automated checks, gates and ratchets', updated: T('11:12'), items: [
+      I('~', 'B-12', 'Survey existing checks (gate or ratchet, cost, frozen debt)', { ref: 'ROUND-4', since: T('10:55') }, [
+        I('x', 'B-12a', 'List ratchets with frozen debt', { done: T('11:02') }),
+        I('~', 'B-12b', 'Measure the cost of each check', { since: T('11:05') }),
+        I('', 'B-12c', 'Write the table for the runner proposal')
+      ]),
+      I('', 'B-13', 'Add a signing-key check to diff-prod-staging.mjs', { ref: 'R-198' }),
+      I('!', 'B-14', 'Make the rules fingerprint a ratchet once permissions land'),
+      I('x', 'B-09', 'Verify the backup bucket copy of 30 Oct', { done: '2026-10-30T12:50' })
+    ]},
+    { id: 'C', title: 'Work plans, drafting and review', updated: T('11:35'), items: [
+      I('~', 'C-05', 'Operational plan for staging parity, six steps', { ref: 'P-035', since: T('11:05') }, [
+        I('x', 'C-05a', 'Diff production against staging', { ref: 'C-92', done: T('10:20') }),
+        I('', 'C-05b', 'Write the six steps with the four open decisions')
+      ]),
+      I('!', 'C-04', 'Chain cure plan, choose between options A and B', { ref: 'P-037', wait: 'alice', since: T('10:40') }),
+      I('', 'C-06', 'Brief for large projects', { ref: 'P-036' }),
+      I('x', 'C-03', 'Review P-033, the cause is not the date window', { done: T('10:15') }),
+      I('-', 'C-02', 'Alternative chain cure as a separate service', { ref: 'P-030', done: '2026-10-30T16:00' })
+    ]},
+    { id: 'D', title: 'Implementation of approved plans', updated: T('11:30'), items: [
+      I('~', 'D-04', 'Neutral translation text and release request', { ref: 'P-017', since: T('10:20') }),
+      I('!', 'D-07', 'Release the recompute change, early exit and retry', { ref: 'P-034', wait: 'bob', since: T('10:50') }),
+      I('', 'D-05', 'Visits permission and deletion safeguard', { ref: 'P-019' }),
+      I('', 'D-06', 'Move switches out of .env into the caller code', { ref: 'P-009' }),
+      I('!', 'D-08', 'Session revocation, six files', { ref: 'P-010', wait: 'D-04', since: T('10:20') }),
+      I('x', 'D-03', 'Narrow the card query window, now live', { ref: 'P-033', done: T('11:15') })
+    ]},
+    { id: 'E', title: 'Inventories and data-flow surveys', updated: T('08:07'), items: [
+      I('~', 'E-05', 'Survey the 62 entry points that are not callables (22 cron, 30 triggers, 10 HTTP)', { since: T('08:05') }),
+      I('', 'E-06', 'Count audit-log rows that contain sensitive fields', { ref: 'C-57' }),
+      I('x', 'E-04', 'Mobile app does not reference the safety deadlines field', { done: '2026-10-31T16:30' })
+    ]}
+  ];
+
+  var PEOPLE = ['alice', 'bob', 'carol'];
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var CLS = { '': 'todo', '~': 'doing', '!': 'block', 'x': 'done', '-': 'drop' };
+  var CH = { '': ' ', '~': '~', '!': '!', 'x': 'x', '-': '-' };
+  var isClosed = function (it) { return it.st === 'x' || it.st === '-'; };
+  var isId = function (s) { return /^[A-Z][A-Z0-9]{0,3}-\d+[a-z0-9]*$/.test(s); };
+
+  var ICONS = {
+    todo: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+    doing: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="currentColor"/><path class="inv" d="M6.5 5.1l4.2 2.9-4.2 2.9z"/></svg>',
+    block: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6.4 5.6v4.8M9.6 5.6v4.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    done: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="currentColor"/><path d="M5.2 8.2l2 2 3.7-4" fill="none" stroke="var(--win)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    drop: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.75" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.4 8h5.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    err: '<svg class="pi" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="currentColor"/><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="var(--win)" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    warn: '<svg class="pi" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8l6.6 11.6H1.4z" fill="currentColor"/><path d="M8 6.2v3.4M8 11.2v.1" stroke="var(--win)" stroke-width="1.6" stroke-linecap="round"/></svg>'
+  };
+
+  /* ---------- model ---------- */
+  var INDEX = {};
+  function walk(items, depth, parent, fn) {
+    items.forEach(function (it) { fn(it, depth, parent); walk(it.kids, depth + 1, it, fn); });
+  }
+  function fmtKv(it) {
+    var o = [], k = it.kv;
+    if (k.ref) o.push(['ref', k.ref, '']);
+    if (k.wait) o.push(['wait', k.wait, 'wait']);
+    if (k.since) o.push(['since', k.since, '']);
+    if (k.done) o.push(['done', k.done, 'done']);
+    return o;
+  }
+  function buildLines(lane) {
+    var L = [];
+    function fm(k, v) { return '<span class="c-k">' + k + '</span><span class="c-fm">: </span>' + esc(v); }
+    L.push({ html: '<span class="c-fm">---</span>' });
+    L.push({ html: fm('format', '1') });
+    L.push({ html: fm('lane', lane.id) });
+    L.push({ html: fm('title', lane.title) });
+    L.push({ html: '<span class="c-fm">---</span>' });
+    L.push({ html: '' });
+    walk(lane.items, 0, null, function (it, d) {
+      var cls = CLS[it.st];
+      var h = '  '.repeat(d) + '<span class="dim">- </span><span class="dim">[</span><span class="mk-' + cls + '">' + CH[it.st] + '</span><span class="dim">]</span> ' +
+        '<span class="id">' + esc(it.id) + '</span> <span class="ti">' + esc(it.title) + '</span>';
+      fmtKv(it).forEach(function (kv) {
+        h += ' <span class="kv ' + kv[2] + '"><span class="k">' + kv[0] + ':</span><span class="v">' + esc(kv[1]) + '</span></span>';
+      });
+      L.push({ html: h, id: it.id });
+      it.line = L.length;
+    });
+    lane.lines = L;
+  }
+  LANES.forEach(function (lane) {
+    walk(lane.items, 0, null, function (it, d, p) { INDEX[it.id] = { item: it, lane: lane, depth: d, parent: p }; });
+  });
+  LANES.forEach(buildLines);
+
+  function count(lane) {
+    var c = { total: 0, closed: 0, block: 0, doing: 0, open: 0 };
+    walk(lane.items, 0, null, function (it) {
+      c.total++;
+      if (isClosed(it)) c.closed++; else c.open++;
+      if (it.st === '!') c.block++;
+      if (it.st === '~') c.doing++;
+    });
+    return c;
+  }
+
+  /* ---------- time ---------- */
+  function dur(ms) {
+    var m = Math.max(1, Math.round(ms / 60000));
+    if (m < 60) return m + ' min';
+    var h = Math.floor(m / 60), r = m % 60;
+    if (h < 24) return r ? h + ' h ' + r + ' min' : h + ' h';
+    return Math.floor(h / 24) + ' d';
+  }
+  function hhmm(ts) { var d = new Date(ts); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  function dayMonth(ts) { var d = new Date(ts); return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+  function sameDay(s) { return s.indexOf(TODAY) === 0; }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  /* ---------- lint (subset of queue-format section 12) ---------- */
+  function lint() {
+    var out = [], seen = {};
+    LANES.forEach(function (lane) {
+      var tops = lane.items.filter(function (i) { return i.st === '~'; });
+      function add(sev, code, msg, it) { out.push({ sev: sev, code: code, msg: msg, lane: lane.id, id: it.id, line: it.line }); }
+      walk(lane.items, 0, null, function (it) {
+        if (seen[it.id]) add('e', 'PM002', 'Duplicate ID ' + it.id + ' (also in ' + seen[it.id] + '.md)', it);
+        seen[it.id] = lane.id;
+        if (it.st === '!' && !it.kv.wait) add('e', 'PM004', it.id + ' is blocked but has no wait: naming a person or an item ID', it);
+        if ((it.st === '~' || it.st === '!') && !it.kv.since) add('e', 'PM006', it.id + ' is ' + (it.st === '~' ? 'in progress' : 'blocked') + ' but has no since:', it);
+        if (isClosed(it) && !it.kv.done) add('e', 'PM005', it.id + ' is closed but has no done:', it);
+        var w = it.kv.wait;
+        if (w) {
+          if (isId(w)) { if (!INDEX[w]) add('e', 'PM007', it.id + ' waits on ' + w + ', which does not exist', it); }
+          else if (PEOPLE.indexOf(w) < 0) add('e', 'PM007', 'wait:' + w + ' is not in the people list', it);
+        }
+      });
+      if (tops.length > 1) add('e', 'PM008', 'Two top-level items in progress (' + tops.map(function (t) { return t.id; }).join(', ') + '). Only one is allowed', tops[1]);
+      tops.forEach(function (it) {
+        if (!it.kv.since) return;
+        var age = NOW - Date.parse(it.kv.since), idle = NOW - Date.parse(lane.updated);
+        if (age > 7200000 && idle > 7200000) add('w', 'PM012', it.id + ' has been in progress for ' + dur(age) + ' and the file has not changed for ' + dur(idle) + '. It is probably stale', it);
+      });
+    });
+    return out;
+  }
+  var PROBS = lint();
+  function probFor(laneId, id) { return PROBS.filter(function (p) { return p.lane === laneId && p.id === id; })[0]; }
+
+  /* ---------- UI state ---------- */
+  var state = { view: 'stack', lane: 'B', sel: 'B-12b', expanded: {}, ptab: 'prompt', plane: 'B' };
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- queue rows ---------- */
+  function metaChips(it, lane) {
+    var c = [], k = it.kv;
+    if (it.st === '~' && k.since) {
+      c.push('<span class="chip doing">for ' + dur(NOW - Date.parse(k.since)) + '</span>');
+      var p = probFor(lane.id, it.id);
+      if (p && p.sev === 'w') c.push('<span class="chip stale">stale</span>');
+    }
+    if (it.st === '!') {
+      if (!k.wait) c.push('<span class="chip err">missing wait:</span>');
+      else if (isId(k.wait)) c.push('<span class="chip block">after ' + esc(k.wait) + '</span>');
+      else c.push('<span class="chip block">waiting on ' + esc(k.wait) + '</span>');
+      if (k.since) c.push('<span class="chip">for ' + dur(NOW - Date.parse(k.since)) + '</span>');
+      else c.push('<span class="chip err">missing since:</span>');
+    }
+    if (isClosed(it) && k.done) {
+      c.push('<span class="chip done">' + (it.st === '-' ? 'dropped ' : '') + (sameDay(k.done) ? 'at ' + hhmm(Date.parse(k.done)) : dayMonth(Date.parse(k.done))) + '</span>');
+    }
+    if (k.ref) k.ref.split(',').forEach(function (r) { c.push('<span class="chip">' + esc(r) + '</span>'); });
+    return c.length ? '<div class="meta">' + c.join('') + '</div>' : '';
+  }
+  function row(it, lane, depth, withLane, extra) {
+    var cls = CLS[it.st];
+    return '<button type="button" class="row st-' + cls + (state.sel === it.id ? ' is-sel' : '') + '" data-id="' + it.id + '" data-lane="' + lane.id + '" style="--d:' + depth + '">' +
+      ICONS[cls] + '<span><span class="rid">' + (withLane ? '<span class="badge sm laneTag">' + lane.id + '</span>' : '') + esc(it.id) + '</span><span class="rt">' + esc(it.title) + '</span>' + metaChips(it, lane) + (extra || '') + '</span></button>';
+  }
+  function subtree(it, lane, depth) {
+    var h = row(it, lane, depth);
+    it.kids.forEach(function (k) { h += subtree(k, lane, depth + 1); });
+    return h;
+  }
+
+  function laneBlock(lane) {
+    var c = count(lane), full = !!state.expanded[lane.id];
+    var pd = c.total ? (c.closed / c.total * 100) : 0, pp = c.total ? (c.doing / c.total * 100) : 0;
+    var h = '<section class="lane"><div class="lane-h"><span class="badge">' + lane.id + '</span><span class="lane-t">' + esc(lane.title) + '</span><span class="lane-c">' + c.closed + '/' + c.total + '</span></div>' +
+      '<div class="bar"><i class="d" style="width:' + pd + '%"></i><i class="p" style="width:' + pp + '%"></i></div><div class="lane-b">';
+    if (full) {
+      lane.items.forEach(function (it) { h += subtree(it, lane, 0); });
+    } else {
+      var doing = lane.items.filter(function (i) { return i.st === '~'; });
+      var next = lane.items.filter(function (i) { return i.st === ''; }).slice(0, 2);
+      if (doing.length) { h += '<div class="sub">In progress</div>'; doing.forEach(function (it) { h += subtree(it, lane, 0); }); }
+      else h += '<div class="empty">Nothing in progress.</div>';
+      if (next.length) { h += '<div class="sub">Up next</div>'; next.forEach(function (it) { h += row(it, lane, 0); }); }
+    }
+    h += '</div><div class="lane-f">';
+    if (c.block) h += '<span class="chip block">' + c.block + ' blocked</span>';
+    if (c.closed) h += '<span class="chip done">' + c.closed + ' closed</span>';
+    h += '<span class="sp"></span><button type="button" class="tg" data-toggle="' + lane.id + '">' + (full ? 'Collapse' : 'Show all') + '</button></div></section>';
+    return h;
+  }
+  function stackView() { return LANES.map(laneBlock).join(''); }
+
+  function blockedView() {
+    var groups = {}, order = [];
+    function add(key, entry) { if (!groups[key]) { groups[key] = []; order.push(key); } groups[key].push(entry); }
+    LANES.forEach(function (lane) {
+      walk(lane.items, 0, null, function (it) {
+        if (it.st !== '!') return;
+        var w = it.kv.wait;
+        if (!w) add('__none', { it: it, lane: lane });
+        else if (isId(w)) add('__dep', { it: it, lane: lane });
+        else add(w, { it: it, lane: lane });
+      });
+    });
+    var keys = PEOPLE.filter(function (p) { return groups[p]; })
+      .concat(order.filter(function (k) { return PEOPLE.indexOf(k) < 0 && k.indexOf('__') !== 0; }))
+      .concat(groups.__dep ? ['__dep'] : [], groups.__none ? ['__none'] : []);
+    if (!keys.length) return '<div class="empty">No blocked items.</div>';
+    return keys.map(function (k) {
+      var title = k === '__dep' ? 'Dependencies between items' : k === '__none' ? 'No reason given, needs fixing' : 'Waiting on ' + k;
+      groups[k].sort(function (a, b) { return Date.parse(a.it.kv.since || '9999') - Date.parse(b.it.kv.since || '9999'); });
+      var rows = groups[k].map(function (e) {
+        var extra = '';
+        if (k === '__dep') {
+          var dep = INDEX[e.it.kv.wait];
+          if (dep) extra = '<div class="meta"><span class="chip ' + (dep.item.st === '~' ? 'doing' : 'block') + '">' + esc(dep.item.id) + (dep.item.st === '~' ? ' in progress' : ' not started') + '</span></div>';
+        }
+        return row(e.it, e.lane, 0, true, extra);
+      }).join('');
+      return '<div class="grp' + (k === '__none' ? ' err' : '') + '"><div class="grp-h"><span class="who">' + esc(title) + '</span><span class="n">' + groups[k].length + '</span></div>' + rows + '</div>';
+    }).join('');
+  }
+
+  function eventsList() {
+    var ev = [];
+    LANES.forEach(function (lane) {
+      walk(lane.items, 0, null, function (it) {
+        var k = it.kv, t;
+        if (it.st === 'x' && k.done && (t = Date.parse(k.done)) > lastVisit) ev.push({ t: t, kind: 'done', it: it, lane: lane });
+        if (it.st === '-' && k.done && (t = Date.parse(k.done)) > lastVisit) ev.push({ t: t, kind: 'drop', it: it, lane: lane });
+        if (it.st === '~' && k.since && (t = Date.parse(k.since)) > lastVisit) ev.push({ t: t, kind: 'start', it: it, lane: lane });
+        if (it.st === '!' && k.since && (t = Date.parse(k.since)) > lastVisit) ev.push({ t: t, kind: 'block', it: it, lane: lane });
+      });
+    });
+    return ev.sort(function (a, b) { return b.t - a.t; });
+  }
+  function newsView() {
+    var ev = eventsList();
+    var h = '<div class="news-bar"><span>Since ' + hhmm(lastVisit) + ', the last time you looked</span><button type="button" class="btn" id="markSeen">Mark as seen</button></div>';
+    if (!ev.length) return h + '<div class="empty">Nothing new since ' + hhmm(lastVisit) + '.</div>';
+    var verbs = { done: ['closed', 'k-done'], drop: ['dropped', 'k-drop'], start: ['started', 'k-start'], block: ['blocked', 'k-block'] };
+    return h + ev.map(function (e) {
+      var v = verbs[e.kind], w = e.it.kv.wait;
+      var extra = e.kind === 'block' && w ? ', ' + (isId(w) ? 'after ' : 'waiting on ') + esc(w) : '';
+      return '<button type="button" class="ev" data-id="' + e.it.id + '" data-lane="' + e.lane.id + '"><time>' + hhmm(e.t) + '</time><span><span class="badge sm laneTag">' + e.lane.id + '</span><b>' + esc(e.it.id) + '</b> <span class="' + v[1] + '">' + v[0] + '</span>' + extra + '<br><span class="evt">' + esc(e.it.title) + '</span></span></button>';
+    }).join('');
+  }
+
+  /* ---------- rendering ---------- */
+  function renderTabs() {
+    var blocked = 0; LANES.forEach(function (l) { blocked += count(l).block; });
+    var nNews = eventsList().length;
+    var tabs = [['stack', 'Stack', ''], ['blocked', 'Blocked', blocked ? '<span class="n warn">' + blocked + '</span>' : ''], ['news', 'What’s new', nNews ? '<span class="n new">' + nNews + '</span>' : '']];
+    $('vtabs').innerHTML = tabs.map(function (t) { return '<button type="button" role="tab" class="vtab" aria-selected="' + (state.view === t[0]) + '" data-view="' + t[0] + '">' + t[1] + t[2] + '</button>'; }).join('');
+  }
+  function renderList() {
+    var v = state.view;
+    $('list').innerHTML = v === 'stack' ? stackView() : v === 'blocked' ? blockedView() : newsView();
+  }
+  function renderEditor(scroll) {
+    var lane = LANES.filter(function (l) { return l.id === state.lane; })[0];
+    $('etabs').innerHTML = LANES.map(function (l) {
+      var pe = PROBS.some(function (p) { return p.lane === l.id && p.sev === 'e'; }), pw = PROBS.some(function (p) { return p.lane === l.id && p.sev === 'w'; });
+      return '<button type="button" role="tab" class="etab" aria-selected="' + (l.id === state.lane) + '" data-lane="' + l.id + '">' + l.id + '.md' + (pe ? '<span class="dot e"></span>' : pw ? '<span class="dot w"></span>' : '') + '</button>';
+    }).join('');
+    $('crumb').textContent = '.planmaster / lanes / ' + lane.id + '.md';
+    $('ttl').textContent = lane.id + '.md — PlanMaster — Visual Studio Code';
+    $('code').innerHTML = lane.lines.map(function (l, i) {
+      var cls = 'ln', it = l.id && INDEX[l.id] ? INDEX[l.id].item : null;
+      if (it && it.st === '~') cls += ' is-doing';
+      if (l.id === state.sel) cls += ' is-sel';
+      var p = l.id ? probFor(lane.id, l.id) : null;
+      if (p) cls += p.sev === 'e' ? ' l-err' : ' l-warn';
+      return '<div class="' + cls + '"><span class="no">' + (i + 1) + '</span><span class="tx">' + (l.html || ' ') + '</span></div>';
+    }).join('');
+    if (scroll) {
+      var el = $('code').querySelector('.is-sel');
+      if (el) { var c = $('code'); c.scrollTop = Math.max(0, el.offsetTop - c.clientHeight / 3); }
+    }
+  }
+  function renderProbs() {
+    $('probN').textContent = PROBS.length;
+    $('probs').innerHTML = PROBS.length ? PROBS.map(function (p) {
+      return '<button type="button" class="prob ' + p.sev + '" data-id="' + p.id + '" data-lane="' + p.lane + '">' + (p.sev === 'e' ? ICONS.err : ICONS.warn) + '<span><span class="code-id">' + p.code + '</span>' + esc(p.msg) + '</span><span class="loc">' + p.lane + '.md:' + p.line + '</span></button>';
+    }).join('') : '<div class="none">No problems in the lanes.</div>';
+  }
+  function renderStatus() {
+    var open = 0, blocked = 0, doingLanes = 0, newest = 0;
+    LANES.forEach(function (l) {
+      var c = count(l); open += c.open; blocked += c.block;
+      if (l.items.some(function (i) { return i.st === '~'; })) doingLanes++;
+      newest = Math.max(newest, Date.parse(l.updated));
+    });
+    $('status').innerHTML = '<span><b>▶ ' + plural(doingLanes, 'lane', 'lanes') + ' active</b></span><span>' + open + ' open</span><span>' + blocked + ' blocked</span><span>updated ' + dur(NOW - newest) + ' ago</span><span class="sp"></span>' +
+      '<span>' + plural(PROBS.length, 'problem', 'problems') + '</span><span class="mono">format:1</span>';
+    $('sideSub').textContent = plural(LANES.length, 'lane', 'lanes');
+  }
+  function setSelected(id) {
+    document.querySelectorAll('.row.is-sel').forEach(function (e) { e.classList.remove('is-sel'); });
+    document.querySelectorAll('.row[data-id="' + id + '"]').forEach(function (e) { e.classList.add('is-sel'); });
+  }
+  function select(id, laneId) {
+    state.sel = id; state.lane = laneId || (INDEX[id] && INDEX[id].lane.id) || state.lane;
+    setSelected(id); renderEditor(true);
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.view) { state.view = t.dataset.view; renderTabs(); renderList(); return; }
+    if (t.dataset.toggle) { state.expanded[t.dataset.toggle] = !state.expanded[t.dataset.toggle]; renderList(); return; }
+    if (t.id === 'markSeen') { lastVisit = NOW; renderTabs(); renderList(); return; }
+    if (t.classList.contains('etab')) { state.lane = t.dataset.lane; state.sel = ''; renderEditor(false); return; }
+    if (t.dataset.id) { select(t.dataset.id, t.dataset.lane); return; }
+    if (t.dataset.ptab) { state.ptab = t.dataset.ptab; renderPrompt(); return; }
+    if (t.id === 'copyBtn') { copyPrompt(); return; }
+  });
+
+  /* ---------- commands and prompts (same text as docs/prompts) ---------- */
+  var CLAUDE_BLOCK = [
+    '<!-- planmaster:begin v1 -->',
+    '## Work queue (managed by PlanMaster, do not edit this block by hand)',
+    '',
+    'Long-running work is tracked in `.planmaster/lanes/<LANE>.md`, one file per chat (a "lane").',
+    'Write only to the lane you were assigned. If you were not told your lane, ask.',
+    'The full grammar is in `.planmaster/FORMAT.md`.',
+    '',
+    'One item per line:',
+    '',
+    '    - [ ] B-12 Title of the work ref:P-017',
+    '',
+    'Markers: `[ ]` todo, `[~]` in progress, `[!]` blocked, `[x]` done, `[-]` dropped.',
+    'Children are indented two spaces. Tokens go at the end of the line: `ref:`, `wait:`, `since:`, `done:`.',
+    '',
+    'Rules:',
+    '1. Starting an item: set `[~]` and add `since:`. Only one top-level item may be `[~]`.',
+    '2. Blocked: set `[!]`, add `wait:<person or item ID>`, set `since:`.',
+    '3. Finishing: before telling the user the work is done, set `[x]`, remove `since:`, add `done:`.',
+    '4. Never guess a time. Run `date +%Y-%m-%dT%H:%M` and use its output.',
+    '5. Edit one line at a time with a targeted replacement anchored on the item ID. Never rewrite or reformat the file.',
+    '6. A new item takes the next free number in your lane. Check `.planmaster/archive/` too. IDs are never reused.',
+    '7. An item is hours or days of work. Small steps belong in your own todo list, not in the queue.',
+    '8. Anything longer than a one-line title goes in a document, linked with `ref:`.',
+    '9. After editing a line, read it back to confirm.',
+    '<!-- planmaster:end -->'
+  ].join('\n');
+  function promptFor(lane) {
+    return [
+      'You are lane ' + lane.id + ': "' + lane.title + '".',
+      '',
+      'Your queue file is .planmaster/lanes/' + lane.id + '.md. Read it now, together with .planmaster/FORMAT.md and the PlanMaster block in CLAUDE.md.',
+      '',
+      'Then:',
+      '1. If an item is [~], resume it. Read the files and notes it refers to before acting.',
+      '2. If nothing is [~], take the first top-level [ ] item that does not depend on anything unfinished, mark it [~] with since:, and tell me which one you picked.',
+      '3. If every remaining item is blocked, say so and list what each one waits for.',
+      '',
+      'While you work:',
+      '- Write only to your own lane file, one line per edit.',
+      '- Keep the queue true: change an item when its state changes, not later.',
+      '- Get every time from `date +%Y-%m-%dT%H:%M`. Do not guess.',
+      '- If you need something from another lane, do not edit that lane\'s file. Tell me. Record your own item as [!] with wait: set to the other lane\'s item ID if it exists, or to the person who decides.',
+      '- People allowed in wait: ' + PEOPLE.join(', ') + '.',
+      '',
+      'Before you tell me a piece of work is done, mark it [x] and read the line back.'
+    ].join('\n');
+  }
+  function renderPrompt() {
+    $('ptabs').innerHTML = [['prompt', 'Lane start prompt'], ['block', 'CLAUDE.md block']].map(function (t) {
+      return '<button type="button" role="tab" class="vtab" aria-selected="' + (state.ptab === t[0]) + '" data-ptab="' + t[0] + '">' + t[1] + '</button>';
+    }).join('');
+    var lane = LANES.filter(function (l) { return l.id === state.plane; })[0];
+    $('laneSel').hidden = state.ptab !== 'prompt';
+    $('ptext').textContent = state.ptab === 'prompt' ? promptFor(lane) : CLAUDE_BLOCK;
+    $('copyMsg').textContent = '';
+  }
+  function copyPrompt() {
+    var txt = $('ptext').textContent, msg = $('copyMsg');
+    function fallback() {
+      var r = document.createRange(); r.selectNodeContents($('ptext'));
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      msg.textContent = 'Text selected, copy it with Ctrl+C.';
+    }
+    try {
+      navigator.clipboard.writeText(txt).then(function () { msg.textContent = 'Copied.'; }, fallback);
+    } catch (err) { fallback(); }
+  }
+  $('laneSelect').innerHTML = LANES.map(function (l) { return '<option value="' + l.id + '"' + (l.id === state.plane ? ' selected' : '') + '>' + l.id + ' · ' + esc(l.title) + '</option>'; }).join('');
+  $('laneSelect').addEventListener('change', function (e) { state.plane = e.target.value; renderPrompt(); });
+
+  var legend = {
+    todo: ['Todo', '[ ]', 'faint'], doing: ['In progress', '[~]', 'doing'], block: ['Blocked', '[!]', 'block'], done: ['Done', '[x]', 'done'], drop: ['Dropped', '[-]', 'faint']
+  };
+  Object.keys(legend).forEach(function (k) {
+    var l = legend[k];
+    $('lg-' + k).innerHTML = ICONS[k].replace('class="ic"', 'class="ic" style="color:var(--' + l[2] + ')"') + l[0] + ' <code>' + l[1] + '</code>';
+  });
+
+  renderTabs(); renderList(); renderEditor(true); renderProbs(); renderStatus(); renderPrompt();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# dependencies and build output
+node_modules/
+out/
+dist/
+*.vsix
+.vscode-test/
+
+# local tooling and scratch
+.DS_Store
+*.log
+.env
+.env.*
+graphify-out/
