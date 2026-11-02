@@ -14,6 +14,14 @@ Everything in this repository is in English: code, comments, identifiers, docume
 - Commit messages: imperative mood, subject at most 72 characters, no trailing period, a body only when the reason is not obvious. One logical change per commit.
 - Do not commit scratch files, build output or dependencies (see `.gitignore`).
 
+## Development
+
+- `npm test` runs the unit and integration tests (the CLI tests build `out/` first). `npm run typecheck` runs the compiler without emitting.
+- TypeScript with `strict` and `noUncheckedIndexedAccess`. ES modules, imports use the `.js` suffix.
+- Layout: `src/core` is pure (no `node:` and no VS Code imports), `src/node` reads files, `src/cli` is the command-line entry point, `test/` mirrors them.
+- Every lint rule has a test for the case that triggers it and for the nearest case that does not.
+- Match the surrounding code: comments only where the reason is not obvious from the code.
+
 ## Source of truth
 
 - `docs/spec/queue-format.md` is normative. The parser, linter, prompts, examples and mockup must agree with it. When they disagree, fix them, not the specification, unless the specification is what is wrong.
@@ -26,6 +34,8 @@ Everything in this repository is in English: code, comments, identifiers, docume
 - The demo workspace yields exactly the findings listed in its README.
 - The prompts in `docs/prompts/` and the strings in `docs/mockup/queue-view.html` (managed block and lane start prompt) are identical in content.
 - The managed block stays under 350 words.
+
+`npm test` checks all four, in `test/docs.test.ts` and `test/demo.test.ts`. Run it and `npm run typecheck` before every commit.
 
 ## Principles to keep
 

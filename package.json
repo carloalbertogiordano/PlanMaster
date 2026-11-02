@@ -1,0 +1,24 @@
+{
+  "name": "planmaster",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Visual queue of Claude Code lane work for VS Code. Core library and command-line checker.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "planmaster-lint": "out/cli/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint:demo": "npm run build && node out/cli/main.js docs/examples/demo-workspace --now 2026-11-02T11:48 --mtime E=2026-11-02T08:07"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

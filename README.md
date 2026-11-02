@@ -2,7 +2,7 @@
 
 A VS Code extension that shows the work of several long-running Claude Code chats as one visual queue: what each chat is doing now, what is next, what is blocked and on whom, what was closed, and what changed since you last looked.
 
-**Status: design phase.** This repository currently holds the specification, the prompts, a demo workspace and a visual mockup. There is no extension code yet.
+**Status: milestone 0.1.** The repository holds the specification, the prompts, a demo workspace, a visual mockup, and the core library (parser, linter, model, events) with a command-line checker. The VS Code extension itself is not written yet.
 
 ## The idea
 
@@ -39,9 +39,19 @@ title: Automated checks, gates and ratchets
 
 `[ ]` todo, `[~]` in progress, `[!]` blocked, `[x]` done, `[-]` dropped.
 
+## Command-line checker
+
+```sh
+npm install
+npm run build
+node out/cli/main.js <workspace-or-.planmaster-dir>
+```
+
+Findings are printed to stderr as `file:line severity code message`, a summary to stdout. Exit code 0 when there are no errors, 1 when there is at least one, 2 for usage or configuration errors. `--json` prints the findings as JSON. Run `npm run lint:demo` to check the demo workspace at its reference time.
+
 ## Roadmap
 
-1. Core library: parser, model, linter, events, command-line checker, with tests on the demo workspace.
+1. **Done:** core library (`src/core`), disk loader (`src/node`) and command-line checker (`src/cli`), with tests on the demo workspace.
 2. Extension shell: watcher, Problems panel, status bar, editor decorations.
 3. The queue view.
 4. Commands that install the instructions and copy the prompts.
