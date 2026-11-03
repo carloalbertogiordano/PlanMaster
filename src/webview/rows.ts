@@ -20,9 +20,10 @@ export function renderRow(row: RowModel & { dependency?: Chip }, options: RowOpt
   button.addEventListener('click', () => { reveal(options.folder, row.path, row.line); });
 
   const main = el('span', 'main');
+  // Real spaces, not margins, between the parts: a margin gives the browser nowhere to wrap, so "A-07Regenerate" is cut inside the word.
   const heading = el('span', 'heading');
-  if (options.laneTag !== undefined) heading.append(el('span', 'lane-tag', options.laneTag));
-  heading.append(el('span', 'id', row.id), el('span', 'title', row.title));
+  if (options.laneTag !== undefined) heading.append(el('span', 'lane-tag', options.laneTag), ' ');
+  heading.append(el('span', 'id', row.id), ' ', el('span', 'title', row.title));
   main.append(heading);
 
   const chips = row.dependency ? [...row.chips, row.dependency] : row.chips;

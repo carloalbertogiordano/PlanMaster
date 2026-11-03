@@ -44,6 +44,7 @@ A bug is fixed by first writing the test that reproduces it. Pure refactoring ne
 | `npm run smells` | ESLint (typescript-eslint strict, SonarJS), jscpd (duplication), knip (dead code). |
 | `npm run coverage` | Unit tests with coverage thresholds (95% lines, 90% branches). |
 | `npm run preview` | Draws the real queue view in headless Chrome at several widths and themes (pictures in `dist-preview/`), to look at layout without an editor. Options: `--themes`, `--widths`, `--scenarios`. |
+| `npm run look` | Takes screenshots of the real editor (headless) showing the queue view, with the side bar narrowed to its minimum, in chosen themes (`--themes`, `--steps`, `--fresh`). Needs Xvfb and ImageMagick. |
 | `npm run themes` | Regenerates `themes/*.json` from the palettes in `src/themes`. |
 | `npm run bundle` | Bundles the extension into `dist/extension.cjs`. |
 | `npm run test:extension` | Runs the extension inside a real VS Code, headless through xvfb. Set `VSCODE_EXECUTABLE` to choose the binary. |
@@ -63,7 +64,7 @@ A bug is fixed by first writing the test that reproduces it. Pure refactoring ne
 - The prompt documents in `docs/prompts` are bundled into the extension as text (see `src/extension/templates.ts`), so editing them changes what the commands copy. Keep each to exactly one ```text block.
 - Commands are written as flows over ports (`src/app/commands`) and tested with a scripted user interface; `src/extension` only supplies the real dialogs, diff, clipboard and file access.
 - Parsing must stay linear in the length of its input. Avoid regular expressions with overlapping quantifiers.
-- Anything added to the queue view needs a look: `test/webview/styles.test.ts` fails if the view draws a class that the stylesheet does not mention, if a button has no edge or fill, or if the tab bar cannot wrap. After a visual change, look at it with `npm run preview` at 200, 260 and 420 pixels: the side bar can be narrow, and the tests cannot see layout.
+- Anything added to the queue view needs a look: `test/webview/styles.test.ts` fails if the view draws a class that the stylesheet does not mention, if a button has no edge or fill, or if the tab bar cannot wrap. After a visual change, look at it: `npm run preview` at 160, 260 and 420 pixels (160 is about the narrowest side bar the editor allows), and `npm run look` for the real editor. Tests cannot see layout, and the first version of the setup button passed every test while looking wrong. Join the parts of a line with real spaces, never with margins alone, or the browser has nowhere to wrap and cuts words.
 - Match the surrounding code: comments only where the reason is not obvious from the code.
 
 ## Source of truth

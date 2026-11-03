@@ -1,6 +1,6 @@
 // Draws the real queue view (its stylesheet and script) in headless Chrome at several widths and in several themes,
 // so that layout problems can be looked at without opening an editor.
-// Needs Google Chrome and ImageMagick (`magick`) on the machine. Usage: node scripts/preview.mjs [out-dir] [--themes midnight,banana-panic] [--widths 220,300,420] [--scenarios queue,fresh]
+// Needs Google Chrome and ImageMagick (`magick`) on the machine. Usage: node scripts/preview.mjs [out-dir] [--themes midnight,banana-panic] [--widths 160,260,420] [--scenarios queue,fresh]
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -15,7 +15,7 @@ const option = (name, fallback) => {
 };
 const out = path.resolve(args.find((a) => !a.startsWith('--') && !args[args.indexOf(a) - 1]?.startsWith('--')) ?? path.join(root, 'dist-preview'));
 const themes = option('themes', 'midnight,banana-panic');
-const widths = option('widths', '220,300,420').map(Number);
+const widths = option('widths', '160,260,420').map(Number);
 
 await build({ entryPoints: [path.join(root, 'test/support/preview-models.ts')], outfile: path.join(root, 'dist/preview-models.mjs'), bundle: true, platform: 'node', format: 'esm', logLevel: 'silent' });
 const { previewScenarios } = await import(pathToFileURL(path.join(root, 'dist/preview-models.mjs')).href);

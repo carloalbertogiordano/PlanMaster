@@ -30,7 +30,7 @@ button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-off
 .lane { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 .lane-header { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: start; padding: 8px 10px 6px; }
 .lane-badge, .lane-tag { font-family: var(--vscode-editor-font-family); font-weight: 700; background: var(--vscode-foreground); color: var(--vscode-sideBar-background); border-radius: 4px; padding: 0 5px; font-size: 0.85em; line-height: 1.6; }
-.lane-tag { margin-right: 6px; }
+.lane-tag { margin-right: 2px; }
 .lane-title { font-weight: 600; line-height: 1.3; min-width: 0; overflow-wrap: anywhere; }
 .lane-count { font-family: var(--vscode-editor-font-family); color: var(--muted); font-size: 0.9em; }
 .bar { display: flex; height: 3px; background: var(--line); }
@@ -51,7 +51,7 @@ button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-off
 .icon .inv-stroke { stroke: var(--vscode-sideBar-background); }
 .main { display: grid; gap: 3px; min-width: 0; }
 .heading { overflow-wrap: anywhere; }
-.id { font-family: var(--vscode-editor-font-family); color: var(--muted); margin-right: 6px; }
+.id { font-family: var(--vscode-editor-font-family); color: var(--muted); white-space: nowrap; }
 .st-doing .title { font-weight: 600; }
 .st-done .title, .st-dropped .title { color: var(--muted); text-decoration: line-through; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -105,6 +105,15 @@ button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-off
   .lane-header { padding: 6px 8px; }
   .setup-card { margin: 6px; padding: 10px; }
   .event { grid-template-columns: 6ch minmax(0, 1fr); }
+}
+
+/* The narrowest a side bar can be: the count moves up beside the badge, so that the title has the whole width. */
+@container (max-width: 200px) {
+  .lane-header { grid-template-columns: auto 1fr; gap: 4px 8px; }
+  .lane-badge { grid-column: 1; grid-row: 1; }
+  .lane-count { grid-column: 2; grid-row: 1; justify-self: end; }
+  .lane-title { grid-column: 1 / -1; grid-row: 2; }
+  .row { gap: 6px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -139,6 +139,16 @@ describe('rows', () => {
     expect(new Set(all).size).toBe(5);
   });
 
+  it('puts a real space between the ID and the title, so that the browser can wrap between them instead of inside a word', () => {
+    draw([demo()]);
+    expect(q('.row[data-id="A-07"] .heading').textContent).toBe('A-07 Regenerate the matrix counts');
+  });
+
+  it('puts real spaces around the lane tag of a blocked item as well', () => {
+    draw([demo()], initial('blocked'));
+    expect(q('.row[data-id="A-09"] .heading').textContent).toBe('A A-09 Close 6.3.4 and 6.2.9 with an identity provider read');
+  });
+
   it('indents children by their depth', () => {
     draw([demo()]);
     expect(q('.row[data-id="A-07a"]').style.getPropertyValue('--depth')).toBe('1');

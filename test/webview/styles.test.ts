@@ -92,6 +92,16 @@ describe('the stylesheet of the queue view', () => {
     expect(declarationsFor('.setup-start')).toContain('--vscode-button-background');
   });
 
+  it('never breaks an item ID, which would split A-07 into A- and 07', () => {
+    expect(declarationsFor('.id')).toContain('white-space: nowrap');
+  });
+
+  it('gives the title of a lane a line of its own, over the full width, when the view is very narrow', () => {
+    const narrow = /@container \(max-width: 200px\) \{[\s\S]*?\n\}/.exec(css)?.[0] ?? '';
+    expect(narrow).toMatch(/\.lane-title\s*\{[^}]*grid-column: 1 \/ -1/);
+    expect(narrow).toMatch(/\.lane-count\s*\{[^}]*grid-column: 2/);
+  });
+
   it('adapts the indentation of nested items to the width of the view', () => {
     expect(css).toMatch(/@container[^{]*max-width/);
   });

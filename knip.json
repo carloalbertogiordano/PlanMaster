@@ -19,6 +19,8 @@
   ],
   "ignoreBinaries": [
     "google-chrome",
-    "magick"
+    "import",
+    "magick",
+    "xvfb-run"
   ]
 }

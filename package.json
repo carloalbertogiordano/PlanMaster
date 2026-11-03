@@ -31,7 +31,8 @@
     "package": "node scripts/package.mjs",
     "test:package": "npm run package && node scripts/verify-package.mjs && PLANMASTER_EXTENSION_PATH=dist-vsix/unpacked/extension xvfb-run -a node scripts/test-extension.mjs",
     "themes": "node scripts/build-themes.mjs",
-    "preview": "npm run bundle && node scripts/preview.mjs"
+    "preview": "npm run bundle && node scripts/preview.mjs",
+    "look": "npm run bundle && xvfb-run -a -s \"-screen 0 1400x900x24\" node scripts/look.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
