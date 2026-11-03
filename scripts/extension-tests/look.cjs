@@ -15,7 +15,11 @@ async function until(description, check, timeoutMs = 30000) {
   }
 }
 
-const shot = (file) => cp.execFileSync('import', ['-window', 'root', file]);
+const shot = async (file) => {
+  await vscode.commands.executeCommand('notifications.clearAll');
+  await sleep(300);
+  cp.execFileSync('import', ['-window', 'root', file]);
+};
 
 exports.run = async function run() {
   const out = process.env.PLANMASTER_LOOK_DIR;
@@ -24,6 +28,11 @@ exports.run = async function run() {
   const sizes = JSON.parse(process.env.PLANMASTER_LOOK_SIZES);
   const api = await vscode.extensions.getExtension('planmaster.planmaster').activate();
 
+  const openFile = process.env.PLANMASTER_LOOK_OPEN;
+  if (openFile) {
+    const folder = vscode.workspace.workspaceFolders[0].uri;
+    await vscode.window.showTextDocument(vscode.Uri.joinPath(folder, openFile), { preview: false });
+  }
   await vscode.commands.executeCommand('planmaster.queue.focus');
   await until('the view to draw', () => api.queueView().drawnLanes !== undefined);
 
@@ -38,7 +47,7 @@ exports.run = async function run() {
         narrowed += 1;
       }
       await sleep(1200);
-      shot(path.join(out, `${prefix}-${theme.file}-narrowed-${target}.png`));
+      await shot(path.join(out, `${prefix}-${theme.file}-narrowed-${target}.png`));
     }
     for (let i = 0; i < narrowed; i++) await vscode.commands.executeCommand('workbench.action.decreaseViewWidth');
   }
