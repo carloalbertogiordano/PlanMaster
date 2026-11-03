@@ -123,7 +123,9 @@ Findings go to stderr as `file:line severity code message` and a summary goes to
 | [docs/examples/demo-workspace/](docs/examples/demo-workspace/) | A five-lane queue used as a test fixture. |
 | [docs/mockup/queue-view.html](docs/mockup/queue-view.html) | An interactive mockup of the queue view. Open it in a browser. |
 
-## Development
+## Contributing
+
+Contributions are welcome. The rules every change follows (the Red-Green-Refactor method, the layout of `src/`, the limits on code smells and the commit rules) are in [CLAUDE.md](CLAUDE.md). Claude Code reads that file by itself, and it is just as useful to read by hand. Please read it before opening a pull request.
 
 The code is TypeScript, tested first with Vitest, and kept honest by ESLint (with SonarJS), jscpd for duplication and knip for dead code. The extension is also run inside a real VS Code under a virtual display, both from source and from the packed `.vsix`. `npm run check` runs all of it, and it is what to run before a commit. `npm run preview` and `npm run look` draw the queue view in headless Chrome and in the real editor, which is how the pictures above were taken.
 
