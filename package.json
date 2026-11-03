@@ -1,6 +1,6 @@
 {
   "name": "planmaster",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Visual queue of the work of several long-running chats in VS Code, with hooks that keep the queue accurate.",
   "type": "module",
