@@ -17,8 +17,8 @@ export const DEMO_MTIMES: Record<string, string> = {
 };
 
 /** The demo workspace analysed at its reference time, with the documented file times. */
-export function analyzeDemo(): Analysis {
-  const { input } = loadWorkspace(DEMO_DIR);
+export function analyzeDemo(directory: string = DEMO_DIR): Analysis {
+  const { input } = loadWorkspace(directory);
   for (const file of input.files) {
     const lane = file.path.split('/').pop()?.replace(/\.md$/, '') ?? '';
     file.mtimeMs = T(DEMO_MTIMES[lane] ?? '');

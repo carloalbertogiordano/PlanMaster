@@ -16,5 +16,9 @@
   ],
   "ignoreDependencies": [
     "@vscode/vsce"
+  ],
+  "ignoreBinaries": [
+    "google-chrome",
+    "magick"
   ]
 }

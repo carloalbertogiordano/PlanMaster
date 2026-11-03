@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = fileURLToPath(new URL('../..', import.meta.url));
+// A string is passed to fileURLToPath because some test environments replace the global URL class.
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 export function read(relative: string): string {
   return fs.readFileSync(path.join(ROOT, relative), 'utf8');
