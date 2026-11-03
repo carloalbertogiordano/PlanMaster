@@ -53,7 +53,11 @@
   },
   "displayName": "PlanMaster",
   "publisher": "planmaster",
-  "license": "UNLICENSED",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/carloalbertogiordano/PlanMaster.git"
+  },
   "categories": [
     "Other"
   ],

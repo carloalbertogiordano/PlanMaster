@@ -14,6 +14,7 @@ const entries = execFileSync('unzip', ['-Z1', vsix], { encoding: 'utf8' }).split
 
 const required = [
   'extension/package.json',
+  'extension/LICENSE.txt',
   'extension/dist/extension.cjs',
   'extension/dist/webview.js',
   'extension/dist/planmaster-hook.cjs',
