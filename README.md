@@ -46,7 +46,15 @@ Text from lane files is treated as untrusted. The view never builds HTML from it
 
 ## Install
 
-PlanMaster is not on the Marketplace, so you build it. You need Node 20 or later and VS Code 1.90 or later.
+PlanMaster is not on the Marketplace. Download `planmaster-<version>.vsix` from the [latest release](https://github.com/carloalbertogiordano/PlanMaster/releases/latest), then install it with
+
+```sh
+code --install-extension planmaster-<version>.vsix
+```
+
+or, in VS Code, open the Extensions view, choose Install from VSIX in the "..." menu, and pick the file. Then run Developer: Reload Window. You need VS Code 1.90 or later.
+
+To build it yourself you also need Node 20 or later:
 
 ```sh
 git clone https://github.com/carloalbertogiordano/PlanMaster.git
@@ -56,7 +64,7 @@ npm run package
 code --install-extension dist-vsix/planmaster.vsix
 ```
 
-Then run Developer: Reload Window. After you pull new changes, run `npm run package` again and install with `--force`.
+To update an installed copy, install the new file again with `--force` and reload the window.
 
 ## Getting started
 
@@ -117,9 +125,7 @@ Findings go to stderr as `file:line severity code message` and a summary goes to
 
 ## Development
 
-The code is TypeScript, tested first with Vitest, and kept honest by ESLint (with SonarJS), jscpd for duplication and knip for dead code. The extension is also run inside a real VS Code under a virtual display, both from source and from the packed `.vsix`. `npm run check` runs all of it, and it is what to run before a commit.
-
-[CLAUDE.md](CLAUDE.md) holds the working conventions: the Red-Green-Refactor method, the layout of `src/`, and the commit rules. `npm run preview` and `npm run look` draw the queue view in headless Chrome and in the real editor, which is how the pictures above were taken.
+The code is TypeScript, tested first with Vitest, and kept honest by ESLint (with SonarJS), jscpd for duplication and knip for dead code. The extension is also run inside a real VS Code under a virtual display, both from source and from the packed `.vsix`. `npm run check` runs all of it, and it is what to run before a commit. `npm run preview` and `npm run look` draw the queue view in headless Chrome and in the real editor, which is how the pictures above were taken.
 
 ## License
 
