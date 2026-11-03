@@ -146,7 +146,8 @@ function renderSetupCard(folder: string, notice: SetupNotice, handlers: Handlers
 }
 
 function renderTab(folder: QueueViewModel, state: ViewState, handlers: Handlers): HTMLElement {
-  if (folder.error !== undefined) {
+  // The get-started card already says what is wrong with the files, so the banner would only repeat it.
+  if (folder.error !== undefined && !folder.setup) {
     const banner = el('p', 'error-banner', folder.error);
     banner.setAttribute('role', 'alert');
     return banner;

@@ -73,6 +73,20 @@ describe.each(PALETTES)('$name', (p) => {
     check('accent text', p.accentFg, p.accent);
   });
 
+  it('keeps the labels of the buttons readable at rest and under the pointer', () => {
+    const { colors } = buildTheme(p);
+    const get = (key: string): string => colors[key] ?? '#ff00ff';
+    check('primary', get('button.foreground'), get('button.background'));
+    check('primary hovered', get('button.foreground'), get('button.hoverBackground'));
+    check('secondary', get('button.secondaryForeground'), get('button.secondaryBackground'));
+    check('secondary hovered', get('button.secondaryForeground'), get('button.secondaryHoverBackground'));
+  });
+
+  it('lets a secondary button stand out from the side bar it sits on', () => {
+    const { colors } = buildTheme(p);
+    expect(distance(colors['button.secondaryBackground'] ?? '#000', p.bgSide)).toBeGreaterThan(20);
+  });
+
   it('keeps the status bar readable in all three states', () => {
     check('normal', p.status.fg, p.status.bg);
     check('warning', p.statusWarning.fg, p.statusWarning.bg);

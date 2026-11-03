@@ -53,6 +53,16 @@ describe('buildTheme', () => {
     expect(theme.colors['statusBarItem.warningForeground']).toBe('#ffffff');
   });
 
+  it('gives the buttons of the queue view their own colors: primary on the accent, secondary on the selection', () => {
+    expect(theme.colors['button.background']).toBe('#66aaff');
+    expect(theme.colors['button.foreground']).toBe('#000000');
+    expect(theme.colors['button.secondaryBackground']).toBe('#304060');
+    expect(theme.colors['button.secondaryForeground']).toBe('#eeeeee');
+    expect(isHexColor(theme.colors['button.hoverBackground'] ?? '')).toBe(true);
+    expect(isHexColor(theme.colors['button.secondaryHoverBackground'] ?? '')).toBe(true);
+    expect(theme.colors['button.hoverBackground']).not.toBe(theme.colors['button.background']);
+  });
+
   it('tints the focus line of a lane with the accent, translucent', () => {
     expect(theme.colors['editor.rangeHighlightBackground']).toBe('#66aaff26');
   });

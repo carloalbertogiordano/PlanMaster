@@ -74,6 +74,10 @@
     "input.border": "#3a0f6b",
     "button.background": "#ff2a6d",
     "button.foreground": "#0d0221",
+    "button.hoverBackground": "#fc4683",
+    "button.secondaryBackground": "#3b1470",
+    "button.secondaryForeground": "#e8e6ff",
+    "button.secondaryHoverBackground": "#5e186f",
     "badge.background": "#ff2a6d",
     "badge.foreground": "#0d0221"
   },

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { assessSetup, buildQueueViewModel, errorViewModel, setupViewModel, type QueueViewModel } from '../../src/app/index.js';
+import { assessSetup, buildQueueViewModel, errorViewModel, setupViewModel, withSetup, type QueueViewModel } from '../../src/app/index.js';
 import { laneKey, render, restoreViewState, type Handlers, type ViewState } from '../../src/webview/render.js';
 import { T, laneFile, run } from '../helpers.js';
 import { analyzeDemo } from '../support/demo.js';
@@ -242,6 +242,14 @@ describe('a folder with an invalid configuration', () => {
     expect(texts('.error-banner')).toEqual(['config.json: <b>bad</b>']);
     expect(root.querySelector('b')).toBeNull();
     expect(root.querySelector('.lane')).toBeNull();
+  });
+
+  it('does not say it twice when the get-started card already shows the same problem', () => {
+    const message = 'config.json is not valid JSON: boom';
+    const unreadable = assessSetup({ hasWorkspaceDir: true, analysis: undefined, claudeMd: undefined, configError: message });
+    draw([withSetup(errorViewModel('demo', message), unreadable)]);
+    expect(texts('.setup-problems li')).toEqual([message]);
+    expect(root.querySelector('.error-banner')).toBeNull();
   });
 
   it('still shows the other folders normally', () => {

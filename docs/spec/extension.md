@@ -252,6 +252,7 @@ State, in `workspaceState`: the last-seen time and the expanded/collapsed state 
 - **Round trip of the grammar.** Every example in `docs/` that is shown as a queue line is extracted and parsed in a test, so the documentation cannot drift from the parser.
 - **Events (unit).** Table-driven: last seen before, between and after timestamps.
 - **Extension (integration).** `npm run test:extension` launches a real VS Code headless (xvfb) on a copy of the demo workspace and checks activation, diagnostics and their columns, the state summary, hover, go to definition, reaction to edits, creation and deletion of files, a broken `config.json`, and the command. These tests share one workspace and run in order; the logic they exercise is covered in isolation by the unit tests.
+- **Look of the view.** The stylesheet is checked for the things that broke once: every class the view draws is styled, every action button has an edge or fill and a hover state, and the tab bar wraps. Layout itself is looked at with `npm run preview`, which draws the real view, with the theme colors an editor would give it, at several side bar widths.
 - **Webview.** Escape tests with hostile titles (`<img onerror=...>`, very long strings, control characters).
 
 ## 14. Milestones

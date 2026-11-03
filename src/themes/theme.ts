@@ -1,3 +1,5 @@
+import { blend } from './color.js';
+
 interface Pair {
   bg: string;
   fg: string;
@@ -81,6 +83,7 @@ export const REQUIRED_COLORS = [
   'statusBar.background', 'statusBar.foreground', 'statusBar.border', 'statusBarItem.hoverBackground',
   'statusBarItem.errorBackground', 'statusBarItem.errorForeground', 'statusBarItem.warningBackground', 'statusBarItem.warningForeground',
   'titleBar.activeBackground', 'titleBar.activeForeground', 'titleBar.inactiveBackground', 'titleBar.inactiveForeground',
+  'button.hoverBackground', 'button.secondaryBackground', 'button.secondaryForeground', 'button.secondaryHoverBackground',
   'list.hoverBackground', 'list.activeSelectionBackground', 'list.activeSelectionForeground', 'list.inactiveSelectionBackground', 'list.inactiveSelectionForeground',
   'panel.background', 'panel.border', 'input.background', 'input.foreground', 'input.border', 'button.background', 'button.foreground', 'badge.background', 'badge.foreground',
   'charts.blue', 'charts.green', 'charts.orange', 'charts.red', 'charts.purple', 'charts.yellow',
@@ -204,8 +207,14 @@ function widgetColors(p: Palette): Record<string, string> {
     'input.background': p.bg,
     'input.foreground': p.fg,
     'input.border': p.border,
+    // Primary buttons are the accent; the hovered one moves a little towards the text color.
     'button.background': p.accent,
     'button.foreground': p.accentFg,
+    'button.hoverBackground': blend(`${p.accent}d9`, p.fg),
+    // Secondary buttons use the selection color, which stands out from the side bar they sit on.
+    'button.secondaryBackground': p.selection,
+    'button.secondaryForeground': p.fg,
+    'button.secondaryHoverBackground': blend(`${p.accent}2e`, p.selection),
     'badge.background': p.accent,
     'badge.foreground': p.accentFg,
   };
