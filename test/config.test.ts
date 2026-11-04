@@ -11,6 +11,18 @@ describe('parseConfig', () => {
     expect(parseConfig(undefined).people).toEqual([]);
   });
 
+  it('reads the declared tags with their labels', () => {
+    const config = parseConfig('{"tags":{"SEC":"Security review","OPS":"Operations"}}');
+    expect(config.tags).toEqual({ SEC: 'Security review', OPS: 'Operations' });
+  });
+
+  it('has no tags by default and does not share them between calls', () => {
+    expect(parseConfig(undefined).tags).toEqual({});
+    const tags: Record<string, string> = parseConfig(undefined).tags;
+    tags.X = 'leak';
+    expect(parseConfig(undefined).tags).toEqual({});
+  });
+
   it('merges known keys over the defaults and ignores unknown ones', () => {
     const config = parseConfig('{"people":["alice"],"staleAfterMinutes":30,"future":true}');
     expect(config.people).toEqual(['alice']);
@@ -26,6 +38,10 @@ describe('parseConfig', () => {
     ['a zero threshold', '{"doneVisibleDays":0}'],
     ['a string threshold', '{"archiveAfterDays":"7"}'],
     ['people that is not an array', '{"people":"alice"}'],
+    ['tags that is an array', '{"tags":["SEC"]}'],
+    ['a tag key with a space', '{"tags":{"S C":"x"}}'],
+    ['a tag label that is not a string', '{"tags":{"SEC":1}}'],
+    ['an empty tag label', '{"tags":{"SEC":""}}'],
     ['a person with a space', '{"people":["alice smith"]}'],
     ['an empty lanes directory', '{"lanesDir":""}'],
   ])('rejects %s', (_name, text) => {

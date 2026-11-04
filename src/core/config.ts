@@ -1,3 +1,4 @@
+import { TAG_KEY } from './tags.js';
 import type { Config } from './types.js';
 
 export const SUPPORTED_FORMAT = 1;
@@ -9,6 +10,7 @@ export const DEFAULT_CONFIG: Readonly<Config> = {
   doneVisibleDays: 3,
   archiveAfterDays: 14,
   lanesDir: '.planmaster/lanes',
+  tags: {},
 };
 
 export class ConfigError extends Error {}
@@ -21,7 +23,7 @@ type RawConfig = Record<string, unknown>;
  * text is an error, never silently replaced by defaults.
  */
 export function parseConfig(text: string | undefined): Config {
-  if (text === undefined) return { ...DEFAULT_CONFIG, people: [] };
+  if (text === undefined) return { ...DEFAULT_CONFIG, people: [], tags: {} };
   const raw = readObject(text);
   return {
     format: readPositiveInteger(raw, 'format'),
@@ -30,6 +32,7 @@ export function parseConfig(text: string | undefined): Config {
     archiveAfterDays: readPositiveInteger(raw, 'archiveAfterDays'),
     people: readPeople(raw),
     lanesDir: readLanesDir(raw),
+    tags: readTags(raw),
   };
 }
 
@@ -75,4 +78,21 @@ function readLanesDir(raw: RawConfig): string {
     throw new ConfigError('config.json: "lanesDir" must be a non-empty string');
   }
   return value;
+}
+
+const MAX_LABEL_LENGTH = 60;
+
+function readTags(raw: RawConfig): Record<string, string> {
+  const value = raw.tags;
+  if (value === undefined) return {};
+  const problem = 'config.json: "tags" must be an object that maps tag keys to short labels';
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new ConfigError(problem);
+  const tags: Record<string, string> = {};
+  for (const [key, label] of Object.entries(value)) {
+    if (!TAG_KEY.test(key) || typeof label !== 'string' || label.trim() === '' || label.length > MAX_LABEL_LENGTH) {
+      throw new ConfigError(`${problem}; check "${key}"`);
+    }
+    tags[key] = label;
+  }
+  return tags;
 }

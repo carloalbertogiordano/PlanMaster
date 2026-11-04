@@ -3,6 +3,7 @@ export * from './config.js';
 export * from './time.js';
 export { splitTokens, type TokenKey, type TokenSplit, type TokenWord } from './tokens.js';
 export * from './findings.js';
+export { TAG_KEY, parseTagList, ownTags, effectiveTags, tagCounts, type TagList } from './tags.js';
 export { parseLaneFile, laneFromPath, ITEM_LINE, ITEM_ID, LANE_ID, MAX_DEPTH, MAX_TITLE_LENGTH, type ParseResult } from './parser.js';
 export { lint, buildIndex, type IndexedItem, type LintContext } from './lint.js';
 export {

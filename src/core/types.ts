@@ -3,6 +3,7 @@ export type Severity = 'error' | 'warning';
 export type FileKind = 'lane' | 'archive';
 
 export interface Tokens {
+  tag?: string;
   ref?: string;
   wait?: string;
   since?: string;
@@ -66,6 +67,8 @@ export interface Config {
   doneVisibleDays: number;
   archiveAfterDays: number;
   lanesDir: string;
+  /** Declared tags: key to a short label. */
+  tags: Record<string, string>;
 }
 
 export interface SourceFile {

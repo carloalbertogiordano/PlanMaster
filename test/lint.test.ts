@@ -233,6 +233,47 @@ describe('staleness (PM012)', () => {
   });
 });
 
+describe('tags (PM022, PM023)', () => {
+  const declared = JSON.stringify({ people: ['alice'], tags: { SEC: 'Security review', OPS: 'Operations' } });
+
+  it('accepts declared tags, alone or in a list, on any state', () => {
+    const files = [laneFile('A', `
+- [ ] A-1 Todo tag:SEC
+- [!] A-2 Blocked tag:SEC,OPS wait:alice since:2026-11-02T10:00
+- [x] A-3 Done tag:OPS done:2026-11-02T09:00`)];
+    expect(run(files, NOW, declared).findings).toEqual([]);
+  });
+
+  it('PM022: warns about a tag that config.json does not declare, and says how to fix it', () => {
+    const { findings } = run([laneFile('A', '- [ ] A-1 Item tag:SEC,ZZZ')], NOW, declared);
+    expect(codes(findings)).toEqual(['PM022']);
+    expect(findings[0]?.severity).toBe('warning');
+    expect(findings[0]?.message).toContain('ZZZ');
+    expect(findings[0]?.message).not.toContain('SEC,');
+    expect(findings[0]?.message).toContain('"tags"');
+  });
+
+  it('PM022: warns for every tag when config.json has no tags at all', () => {
+    expect(codesOf([laneFile('A', '- [ ] A-1 Item tag:SEC')])).toEqual(['PM022']);
+  });
+
+  it('PM022: warns only on the line that wrote the tag, not on the children that inherit it', () => {
+    const { findings } = run([laneFile('A', '- [ ] A-1 Parent tag:ZZZ\n  - [ ] A-1a Child')], NOW, declared);
+    expect(findings.map((f) => f.itemId)).toEqual(['A-1']);
+  });
+
+  it('PM023: warns about a malformed tag list and still checks the valid entries', () => {
+    const { findings } = run([laneFile('A', '- [ ] A-1 Item tag:SEC,bad!,ZZZ')], NOW, declared);
+    expect(codes(findings)).toEqual(['PM022', 'PM023']);
+    expect(findings[1]?.severity).toBe('warning');
+    expect(findings[1]?.message).toContain('bad!');
+  });
+
+  it('tags are allowed where other tokens are not', () => {
+    expect(run([laneFile('A', '- [ ] A-1 Item tag:SEC')], NOW, declared).findings).toEqual([]);
+  });
+});
+
 describe('analysis', () => {
   it('reports unreadable files (PM021)', () => {
     const analysis = analyze({ files: [], unreadable: [{ path: '.planmaster/lanes/Z.md', kind: 'lane', reason: 'too big' }], configText: CONFIG }, NOW);

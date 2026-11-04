@@ -23,6 +23,8 @@ export const RULE_SEVERITY: Readonly<Record<string, Severity>> = {
   PM019: 'error',
   PM020: 'warning',
   PM021: 'error',
+  PM022: 'warning',
+  PM023: 'warning',
 };
 
 export interface FindingOptions {

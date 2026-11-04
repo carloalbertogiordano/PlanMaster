@@ -52,7 +52,7 @@
       }
     },
     "token": {
-      "match": "(?<=\\s)(ref|wait|since|done)(:)(\\S+)",
+      "match": "(?<=\\s)(tag|ref|wait|since|done)(:)(\\S+)",
       "captures": {
         "1": {
           "name": "variable.parameter.planmaster.key"

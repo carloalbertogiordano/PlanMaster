@@ -46,4 +46,10 @@ describe('splitTokens', () => {
     expect(split.words).toHaveLength(8);
     expect(split.title.startsWith('Title ref:x')).toBe(true);
   });
+
+  it('reads tag as a token', () => {
+    const split = splitTokens('Make it tag:SEC,OPS ref:R-1');
+    expect(split.title).toBe('Make it');
+    expect(split.tokens).toEqual({ tag: 'SEC,OPS', ref: 'R-1' });
+  });
 });

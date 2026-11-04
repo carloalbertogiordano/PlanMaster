@@ -65,9 +65,11 @@ export interface Counts {
   inProgress: number;
 }
 
-export function laneCounts(file: LaneFile): Counts {
+/** Counts the lane's items, or only those `include` lets through. */
+export function laneCounts(file: LaneFile, include: (item: Item) => boolean = () => true): Counts {
   const counts: Counts = { total: 0, closed: 0, open: 0, blocked: 0, inProgress: 0 };
   for (const item of file.items) {
+    if (!include(item)) continue;
     counts.total++;
     if (isClosed(item)) counts.closed++;
     else counts.open++;
@@ -92,8 +94,8 @@ export function currentStep(focus: Item): Item {
   }
 }
 
-export function upNext(file: LaneFile, count = 2): Item[] {
-  return file.roots.filter((i) => i.marker === ' ').slice(0, count);
+export function upNext(file: LaneFile, count = 2, include: (item: Item) => boolean = () => true): Item[] {
+  return file.roots.filter((i) => i.marker === ' ' && include(i)).slice(0, count);
 }
 
 export type BlockedGroupKind = 'person' | 'item' | 'missing';
@@ -110,13 +112,13 @@ export interface BlockedGroup {
  * order, other wait values alphabetically, then dependencies between items,
  * then blocked items with no reason. Oldest block first inside a group.
  */
-export function blockedGroups(analysis: Analysis): BlockedGroup[] {
+export function blockedGroups(analysis: Analysis, include: (item: Item) => boolean = () => true): BlockedGroup[] {
   const byPerson = new Map<string, Item[]>();
   const dependencies: Item[] = [];
   const missing: Item[] = [];
 
-  for (const item of analysis.lanes.flatMap((lane) => lane.items)) {
-    if (item.marker !== '!') continue;
+  const blocked = analysis.lanes.flatMap((lane) => lane.items).filter((item) => item.marker === '!' && include(item));
+  for (const item of blocked) {
     const wait = item.tokens.wait;
     if (wait === undefined) missing.push(item);
     else if (ITEM_ID.test(wait)) dependencies.push(item);

@@ -66,6 +66,13 @@ describe('the lane grammar', () => {
     }
   });
 
+  it('colors every token key, tag included', () => {
+    const token = grammar.repository.token as unknown as { match: string };
+    const pattern = new RegExp(token.match.replace('(?<=\\s)', ' '));
+    for (const key of ['tag', 'ref', 'wait', 'since', 'done']) expect(pattern.test(` ${key}:value`), key).toBe(true);
+    expect(pattern.test(' other:value')).toBe(false);
+  });
+
   it('does not take other text for an item', () => {
     for (const line of ['- [?] B-1 Title', '- B-1 Title', '- [ ] b-1 Title', 'plain prose', '- [~]B-1 Title']) {
       expect(itemRules.some(([, rule]) => new RegExp(rule.begin ?? '(?!)').test(line)), line).toBe(false);

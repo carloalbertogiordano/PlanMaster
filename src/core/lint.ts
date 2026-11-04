@@ -1,5 +1,6 @@
 import { finding, sortFindings } from './findings.js';
 import { ITEM_ID } from './parser.js';
+import { parseTagList } from './tags.js';
 import { MINUTE, formatDuration, parseTimestamp } from './time.js';
 import { isClosed, type Config, type Finding, type Item, type LaneFile, type Marker, type Tokens } from './types.js';
 
@@ -78,6 +79,7 @@ const ITEM_RULES: readonly ItemRule[] = [
   checkWaitTarget,
   checkUnexpectedTokens,
   checkTimes,
+  checkTags,
 ];
 
 function checkIdentity(item: Item, file: LaneFile, context: LintContext, emit: Emit): void {
@@ -118,6 +120,19 @@ function checkUnexpectedTokens(item: Item, _file: LaneFile, _context: LintContex
   if (unexpected.length === 0) return;
   const names = unexpected.map((key) => `${key}:`).join(', ');
   emit('PM013', item, `${item.id} is ${STATE_NAME[item.marker]}, so ${names} should not be set`);
+}
+
+function checkTags(item: Item, _file: LaneFile, context: LintContext, emit: Emit): void {
+  const { tags, invalid } = parseTagList(item.tokens.tag);
+  const undeclared = tags.filter((tag) => !Object.hasOwn(context.config.tags, tag));
+  if (undeclared.length > 0) {
+    const entries = undeclared.map((tag) => `"${tag}": "<short label>"`).join(', ');
+    emit('PM022', item, `${item.id} uses tag ${undeclared.join(', ')}, which config.json does not declare; add ${entries} under "tags" in .planmaster/config.json`);
+  }
+  if (invalid.length > 0) {
+    const entries = invalid.map((entry) => `"${entry}"`).join(', ');
+    emit('PM023', item, `${item.id} has a malformed tag: ${entries}; a tag is a letter followed by letters, digits, - or _, up to 20 characters`);
+  }
 }
 
 function checkTimes(item: Item, file: LaneFile, context: LintContext, emit: Emit): void {

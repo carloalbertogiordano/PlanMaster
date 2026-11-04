@@ -88,13 +88,13 @@ Grammar, as a regular expression with named groups:
 ^(?<indent>(?: {2})*)- \[(?<marker>[ ~!x-])\] (?<id>[A-Z][A-Z0-9]{0,3}-\d+(?:[a-z][a-z0-9]*)?) (?<rest>\S.*)$
 ```
 
-`rest` is split into title and tokens by reading words from the right: while the last whitespace-separated word matches `^(ref|wait|since|done):\S+$`, it is a token and is removed. What remains is the title. Consequences:
+`rest` is split into title and tokens by reading words from the right: while the last whitespace-separated word matches `^(tag|ref|wait|since|done):\S+$`, it is a token and is removed. What remains is the title. Consequences:
 
 - Tokens must be at the end of the line, after the title.
 - Token values contain no spaces.
 - Titles may contain colons and any other characters, but must not end with a word that looks like a known token.
 - The same key may appear only once per line (PM001).
-- Canonical token order is `ref`, `wait`, `since`, `done`. The parser accepts any order; tools that write lines use the canonical order.
+- Canonical token order is `tag`, `ref`, `wait`, `since`, `done`. The parser accepts any order; tools that write lines use the canonical order.
 
 The ID suffix after the number must start with a letter, which describes the same set of IDs as "digits followed by lowercase letters and digits" but lets a parser match in linear time. Parsers must stay linear in the length of a line, because lane files are written by a model and may contain arbitrary text.
 
@@ -116,6 +116,7 @@ Indentation is two spaces per level. The first item of a file is at level 0, a c
 
 | Token | Meaning | Value |
 |---|---|---|
+| `tag:` | Classifies the item by topic, so that the queue can be filtered (section 6.3). | One or more tag keys, comma-separated: `tag:SEC` or `tag:SEC,OPS`. |
 | `ref:` | Link to something outside the queue: a plan, a ticket, a document, an ID in another system. | Free, no spaces. Several references are comma-separated: `ref:P-017,C-57`. |
 | `wait:` | What a blocked item is waiting for. | A person key from `config.json` (`people`), or an item ID from any lane. |
 | `since:` | When the item entered its current state. | Timestamp. |
@@ -127,16 +128,27 @@ Indentation is two spaces per level. The first item of a file is at level 0, a c
 
 ### 6.2 Which tokens each state allows
 
-| Marker | `ref` | `wait` | `since` | `done` |
-|---|---|---|---|---|
-| `[ ]` | optional | not allowed | not allowed | not allowed |
-| `[~]` | optional | not allowed | required | not allowed |
-| `[!]` | optional | required | required | not allowed |
-| `[x]`, `[-]` | optional | not allowed | not allowed | required |
+| Marker | `tag` | `ref` | `wait` | `since` | `done` |
+|---|---|---|---|---|---|
+| `[ ]` | optional | optional | not allowed | not allowed | not allowed |
+| `[~]` | optional | optional | not allowed | required | not allowed |
+| `[!]` | optional | optional | required | required | not allowed |
+| `[x]`, `[-]` | optional | optional | not allowed | not allowed | required |
 
 A token that is required and missing is an error (PM004, PM005, PM006). A token that is present where it is not allowed is a warning (PM013), because a leftover token after a state change is common and harmless.
 
 `since:` on a blocked item records when it became blocked. When an item moves from `[~]` to `[!]` the writer replaces the `since:` value.
+
+### 6.3 Tags
+
+A tag classifies an item by topic, for example the area of the product or the kind of request it belongs to. Tags cut across lanes: the queue view can show only the items that carry a chosen tag, whatever lane they are in.
+
+- A tag key is a letter followed by letters, digits, `-` or `_`, at most 20 characters, compared case-sensitively. Short uppercase keys such as `SEC` or `OPS` are the convention.
+- Every tag is declared once in `config.json`, under `tags`, as a key with a short label (section 11). A tag that is used but not declared is a warning (PM022), so that a typo does not silently create a new topic.
+- Writers add tags as the work needs them: when no declared tag fits, they declare a new one first and then use it. Reusing a tag that fits is preferred over inventing a near-duplicate.
+- Children inherit the tags of their parent. A child's line does not repeat them, and filtering by a tag shows the parent's whole subtree. A child may add tags of its own.
+- A tag stays on an item after it is closed.
+- An entry that is not a valid tag key, such as an empty one between two commas, is a warning (PM023) and is ignored.
 
 ## 7. State changes
 
@@ -194,6 +206,7 @@ Archiving is performed by the session that owns the lane, on request (see the ar
 | `doneVisibleDays` | integer | `3` | How long closed items stay visible in the Stack view. |
 | `archiveAfterDays` | integer | `14` | Age after which closed subtrees are eligible for archiving. |
 | `lanesDir` | string | `.planmaster/lanes` | Directory of lane files, relative to the workspace root. |
+| `tags` | object | `{}` | Declared tags: each key is a tag key (section 6.3), each value a label of at most 60 characters, for example `{"SEC": "Security review"}`. The queue view lists them in this order and shows the label as a tooltip. |
 
 A `config.json` that is not valid JSON, or whose keys have the wrong type, is a configuration error reported by the tools. Defaults are not silently substituted for a broken file. Unknown keys are ignored.
 
@@ -224,6 +237,8 @@ The linter is a pure function of the lane files, the archive files, `config.json
 | PM019 | error | Nesting deeper than level 3. |
 | PM020 | warning | Title longer than 120 characters. Long context belongs in a document linked with `ref:`. |
 | PM021 | error | A lane or archive file could not be read, or is larger than 1 MB and was not parsed. |
+| PM022 | warning | `tag:` names a tag that `config.json` does not declare under `tags`. Reported on the line that wrote the tag, not on the children that inherit it. |
+| PM023 | warning | `tag:` contains an entry that is not a valid tag key. |
 
 ## 13. Versioning
 

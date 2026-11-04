@@ -19,9 +19,9 @@ export interface TokenSplit {
   words: TokenWord[];
 }
 
-const TOKEN_WORD = /^(ref|wait|since|done):(\S+)$/;
+const TOKEN_WORD = /^(tag|ref|wait|since|done):(\S+)$/;
 const WHITESPACE = /\s/;
-/** Four token keys exist; more trailing tokens than this cannot be meaningful. */
+/** Five token keys exist; more trailing tokens than this cannot be meaningful. */
 const MAX_TRAILING_TOKENS = 8;
 
 /**
