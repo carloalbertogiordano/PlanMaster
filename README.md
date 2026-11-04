@@ -21,19 +21,25 @@ lane: B
 title: Mobile app: lobby and matchmaking
 ---
 
-- [~] B-05 Lobby screen with a live player list ref:DESIGN-28 since:2026-11-03T13:30
+- [~] B-05 Lobby screen with a live player list tag:UX ref:DESIGN-28 since:2026-11-03T13:30
   - [x] B-05a Connect the room list to the socket done:2026-11-03T14:20
   - [~] B-05b Show a reconnecting banner when the socket drops since:2026-11-03T15:50
-- [!] B-06 Invite links that open the app directly wait:carol since:2026-11-02T17:30
+- [!] B-06 Invite links that open the app directly tag:REL wait:carol since:2026-11-02T17:30
 ```
 
 `[ ]` is todo, `[~]` in progress, `[!]` blocked, `[x]` done and `[-]` dropped. Children are indented by two spaces. A blocked item says who it is waiting for with `wait:`, which takes a person from a list in `config.json` or the ID of another item. Timestamps are local time and come from the clock, never from the model's guess.
+
+Items can also carry tags, such as `tag:UX` or `tag:REL`, that classify them by topic across lanes. Each tag is declared once in `config.json` with a short label, as many as the work needs, and children inherit the tags of their parent.
 
 The extension only reads these files. It checks them against the format, draws them, and tells Claude how to write them. The files are committed with your project, so the history of the work lives in version control and no second store can drift out of sync.
 
 ## What you get
 
 The queue view has three tabs. Stack shows each lane with its item in progress, what is up next and how many items are blocked or closed. Blocked lists everything that is waiting, with the person or item and for how long. What's new lists what changed since you last pressed Mark Everything as Seen.
+
+When items carry tags, a row of tag buttons sits above the queue. Select one or more and every tab shows only the items that carry them, whatever lane they are in. The selection is remembered per project.
+
+![The queue view filtered by one tag](docs/screenshots/filtered-by-tag.png)
 
 In the editor, a lane file gets:
 

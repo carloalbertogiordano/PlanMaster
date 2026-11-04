@@ -36,6 +36,12 @@ exports.run = async function run() {
   await vscode.commands.executeCommand('planmaster.queue.focus');
   await until('the view to draw', () => api.queueView().drawnLanes !== undefined);
 
+  const tags = (process.env.PLANMASTER_LOOK_TAGS ?? '').split(',').filter(Boolean);
+  if (tags.length > 0) {
+    await api.handleQueueMessage({ type: 'filter', folder: api.states()[0].folder, tags });
+    await until('the view to be filtered', () => api.queueView().folders[0]?.filter.length === tags.length);
+  }
+
   for (const theme of themes) {
     await vscode.workspace.getConfiguration('workbench').update('colorTheme', theme.label, vscode.ConfigurationTarget.Global);
     await sleep(2000);

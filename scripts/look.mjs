@@ -1,8 +1,9 @@
 // Takes screenshots of the real editor showing the queue view, with the side bar narrowed step by step.
 // Needs a display, so run it under a virtual one:
-//   xvfb-run -a -s "-screen 0 1400x900x24" node scripts/look.mjs [out-dir] [--themes midnight,banana-panic] [--steps 0,8,16] [--fresh] [--open .planmaster/lanes/A.md] [--showcase]
+//   xvfb-run -a -s "-screen 0 1400x900x24" node scripts/look.mjs [out-dir] [--themes midnight,banana-panic] [--steps 0,8,16] [--fresh] [--open .planmaster/lanes/A.md] [--showcase] [--tags BAL,UX]
 // With --fresh the project has nothing of PlanMaster yet; otherwise it is a copy of the demo project.
 // With --showcase the project is the invented one of scripts/showcase-workspace.mjs, used for the pictures in the README.
+// With --tags the queue view is filtered by those tags.
 // With --open the given file of the project is shown in the editor next to the queue view.
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
@@ -23,6 +24,7 @@ const option = (name, fallback) => {
 };
 const fresh = args.includes('--fresh');
 const showcase = args.includes('--showcase');
+const tags = args.includes('--tags') ? args[args.indexOf('--tags') + 1] : '';
 const openFile = args.includes('--open') ? args[args.indexOf('--open') + 1] : '';
 const out = path.resolve(args.find((a, i) => !a.startsWith('--') && !(args[i - 1] ?? '').startsWith('--')) ?? path.join(root, 'dist-preview'));
 const manifest = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
@@ -73,7 +75,7 @@ try {
     vscodeExecutablePath: findVsCode(),
     extensionDevelopmentPath: root,
     extensionTestsPath: path.join(root, 'scripts', 'extension-tests', 'look.cjs'),
-    extensionTestsEnv: { PLANMASTER_LOOK_OPEN: openFile ?? '', PLANMASTER_LOOK_DIR: out, PLANMASTER_LOOK_PREFIX: fresh ? 'fresh' : 'queue', PLANMASTER_LOOK_THEMES: JSON.stringify(themes), PLANMASTER_LOOK_SIZES: JSON.stringify(sizes) },
+    extensionTestsEnv: { PLANMASTER_LOOK_OPEN: openFile ?? '', PLANMASTER_LOOK_TAGS: tags ?? '', PLANMASTER_LOOK_DIR: out, PLANMASTER_LOOK_PREFIX: fresh ? 'fresh' : 'queue', PLANMASTER_LOOK_THEMES: JSON.stringify(themes), PLANMASTER_LOOK_SIZES: JSON.stringify(sizes) },
     launchArgs: [workspace, '--disable-extensions', '--disable-gpu', '--ozone-platform=x11', '--no-sandbox', '--user-data-dir', userData, '--extensions-dir', path.join(scratch, 'extensions')],
   });
   console.log(`Screenshots written to ${out}`);
