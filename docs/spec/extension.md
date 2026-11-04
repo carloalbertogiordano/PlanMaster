@@ -91,7 +91,7 @@ Row content: state icon, item ID (monospace), title, then chips:
 | in progress | "for 28 min" from `since:`; "stale" when PM012 applies. |
 | blocked | "waiting on bob" or "after D-04"; "for 17 h" from `since:`; "missing wait:" in the error style when PM004 applies. |
 | closed | "at 11:15" if closed today, otherwise the date; "dropped" for `[-]`. |
-| any | one chip per `ref:` value. |
+| any | one chip per tag the item's own line carries, then one chip per `ref:` value. |
 
 Clicking a row opens the lane file at the item's line and selects it. Nothing else happens.
 
@@ -115,7 +115,16 @@ Lists events newer than the **last seen** time, newest first, with "Mark as seen
 
 The tab badge shows the number of events. When there are none, the tab says "Nothing new since <time>."
 
-### 5.4 Implementation notes
+### 5.4 Tag filter
+
+When any item carries a tag (queue-format section 6.3), a bar of toggle buttons, one per tag, sits above the content of the folder on every tab. It lists the declared tags that are in use in the order of `config.json`, then tags that are used but not declared, alphabetically. A tag's button shows its key and has its label as a tooltip.
+
+- Selecting tags shows only the items that carry at least one of them, inherited tags included. With nothing selected everything is shown. A "Clear" button appears while something is selected.
+- The filter applies to all three tabs. In the Stack tab lanes with no matching item disappear, and the counts, the progress bar, "In progress" and "Up next" take only matching items into account. A parent that has a matching child but is not itself in scope is shown for context, and not counted.
+- The selection is remembered per workspace folder in `workspaceState`, so it survives a restart. A selected tag that nothing carries any more stays in the bar so that it can be cleared.
+- The filter is a view setting only. It never changes a file.
+
+### 5.5 Implementation notes
 
 - The view model (`app/queue-view-model`) is plain data built from an analysis and contains the text exactly as written in the files. All escaping is the renderer's job, which only ever sets text content.
 - The renderer (`webview/render`) is tested with a simulated DOM, including titles that contain markup. It keeps keyboard focus on the same control across redraws and follows the ARIA tab pattern, with arrow keys moving between tabs.
@@ -227,7 +236,7 @@ Personal, in VS Code settings:
 | `planmaster.statusBar.enabled` | `true` | Show the status bar item. |
 | `planmaster.diagnostics.enabled` | `true` | Publish lint findings to the Problems panel. |
 
-State, in `workspaceState`: the last-seen time and the expanded/collapsed state of lane blocks. No state is required for correctness; a fresh install shows everything.
+State, in `workspaceState`: the last-seen time, the selected tags of the filter and the expanded/collapsed state of lane blocks. No state is required for correctness; a fresh install shows everything.
 
 ## 11. Security and privacy
 
@@ -265,6 +274,7 @@ State, in `workspaceState`: the last-seen time and the expanded/collapsed state 
 | **0.4** (done) | Commands: initialize, install instructions, the five prompt commands, reveal item. The command flows run behind ports and are unit tested; the real diff, clipboard, file writes and refusal on damaged markers are tested inside VS Code. |
 | **0.6** (done) | The guided setup: the view tells the user in plain words when the queue is missing, empty or unreadable, one button starts the setup, the extension prepares the files and hands over one message for Claude, and a button in the view repeats it at any time. Tested in a real VS Code, including a project that has nothing of PlanMaster. |
 | **0.5** (done) | Hooks for Claude Code (see claude-integration section 7), the command that installs them, and the packaged extension. The package is verified by running the extension tests against the unpacked `.vsix`. Publishing to the marketplace is out of scope. |
+| **0.7** (done) | Tags: the `tag:` token, the declared tags in `config.json`, the warnings for undeclared and malformed tags, the tag filter in the queue view, and the instructions that let Claude declare as many tags as the work needs. Tested in a real VS Code. |
 
 ## 15. Open questions
 

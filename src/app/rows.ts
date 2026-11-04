@@ -1,7 +1,7 @@
-import { ITEM_ID, formatClock, formatDayMonth, formatDuration, parseTimestamp, sameLocalDay, type Item, type Marker } from '../core/index.js';
+import { ITEM_ID, formatClock, formatDayMonth, formatDuration, ownTags, parseTimestamp, sameLocalDay, type Item, type Marker } from '../core/index.js';
 
 export type RowState = 'todo' | 'doing' | 'blocked' | 'done' | 'dropped';
-export type ChipKind = 'plain' | 'doing' | 'block' | 'done' | 'error' | 'stale';
+export type ChipKind = 'plain' | 'doing' | 'block' | 'done' | 'error' | 'stale' | 'tag';
 
 export interface Chip {
   kind: ChipKind;
@@ -51,7 +51,7 @@ export function rowOf(item: Item, context: RowContext): RowModel {
     state,
     stateLabel: label,
     title: item.title,
-    chips: [...stateChips(item, context), ...referenceChips(item)],
+    chips: [...stateChips(item, context), ...tagChips(item), ...referenceChips(item)],
   };
 }
 
@@ -96,6 +96,11 @@ function closedChips(item: Item, now: number): Chip[] {
   if (done === null) return [];
   const when = sameLocalDay(done, now) ? `at ${formatClock(done)}` : formatDayMonth(done);
   return [{ kind: 'done', text: item.marker === '-' ? `dropped ${when}` : when }];
+}
+
+/** One chip for each tag the item's own line carries; inherited tags are not repeated on the children. */
+function tagChips(item: Item): Chip[] {
+  return ownTags(item).map((tag) => ({ kind: 'tag', text: tag }));
 }
 
 function referenceChips(item: Item): Chip[] {

@@ -17,7 +17,7 @@ function declarationsFor(selector: string): string {
     .join(';');
 }
 
-const handlers: Handlers = { reveal: vi.fn(), markSeen: vi.fn(), selectTab: vi.fn(), toggleLane: vi.fn(), setup: vi.fn() };
+const handlers: Handlers = { reveal: vi.fn(), markSeen: vi.fn(), selectTab: vi.fn(), toggleLane: vi.fn(), setup: vi.fn(), filter: vi.fn() };
 let root: HTMLElement;
 
 beforeEach(() => {
@@ -52,11 +52,11 @@ describe('the stylesheet of the queue view', () => {
     expect(missing).toEqual([]);
   });
 
-  it.each(['setup-start', 'setup-link', 'mark-seen', 'toggle'])('gives the %s button a visible edge or fill, so that it looks like a button', (name) => {
+  it.each(['setup-start', 'setup-link', 'mark-seen', 'toggle', 'tag-toggle', 'tag-clear'])('gives the %s button a visible edge or fill, so that it looks like a button', (name) => {
     expect(declarationsFor(`.${name}`), name).toMatch(/\b(border|background)\b/);
   });
 
-  it.each(['setup-link', 'mark-seen', 'toggle'])('gives the secondary %s button an edge that does not depend on its fill, so it shows in every theme', (name) => {
+  it.each(['setup-link', 'mark-seen', 'toggle', 'tag-toggle', 'tag-clear'])('gives the secondary %s button an edge that does not depend on its fill, so it shows in every theme', (name) => {
     expect(declarationsFor(`.${name}`)).toMatch(/border:\s*1px solid var\(--vscode-button-border, var\(--line\)\)/);
   });
 

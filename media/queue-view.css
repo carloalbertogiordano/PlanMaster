@@ -76,16 +76,25 @@ button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-off
 .event .title { color: var(--muted); }
 
 /* Buttons that do something. The tabs and the rows are for moving around and stay flat. */
-.setup-link, .mark-seen, .toggle {
+/* The tag filter: toggle buttons that stay in place and wrap, and are filled while they are on. */
+.tag-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.tag-bar-title { font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-right: 2px; }
+.chip.tag { background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); border-color: transparent; }
+
+.setup-link, .mark-seen, .toggle, .tag-toggle, .tag-clear {
   display: inline-flex; align-items: center; justify-content: center; min-height: 24px; padding: 3px 10px;
   border: 1px solid var(--vscode-button-border, var(--line)); border-radius: 4px;
   background: var(--vscode-button-secondaryBackground, var(--vscode-list-inactiveSelectionBackground));
   color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
   text-align: center; white-space: nowrap;
 }
-.setup-link:hover, .mark-seen:hover, .toggle:hover { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
+.setup-link:hover, .mark-seen:hover, .toggle:hover, .tag-toggle:hover, .tag-clear:hover { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
 .setup-link { margin-left: auto; }
 .toggle { margin-left: auto; }
+.tag-toggle, .tag-clear { min-height: 22px; padding: 0 8px; font-family: var(--vscode-editor-font-family); font-size: 0.9em; }
+.tag-toggle[aria-pressed="true"] { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-color: var(--vscode-button-background); }
+.tag-toggle[aria-pressed="true"]:hover { background: var(--vscode-button-hoverBackground, var(--vscode-button-background)); }
+.tag-clear { margin-left: auto; }
 
 /* The get-started card, with the one button that matters. */
 .setup-card { display: grid; gap: 8px; margin: 8px; padding: 12px; border: 1px solid var(--vscode-focusBorder, var(--line)); border-radius: 6px; background: var(--vscode-editorWidget-background, transparent); }
@@ -103,6 +112,7 @@ button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-off
   .row { padding-left: calc(6px + var(--depth, 0) * 8px); padding-right: 6px; }
   .tab { padding: 3px 6px; }
   .lane-header { padding: 6px 8px; }
+  .tag-bar { padding: 4px 6px; }
   .setup-card { margin: 6px; padding: 10px; }
   .event { grid-template-columns: 6ch minmax(0, 1fr); }
 }

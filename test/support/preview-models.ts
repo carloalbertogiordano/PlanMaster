@@ -10,14 +10,15 @@ const missing = assessSetup({ hasWorkspaceDir: false, analysis: undefined, claud
 
 /** Situations worth looking at when the queue view changes: each is what the view is sent in that case. */
 export function previewScenarios(): Record<string, QueueViewModel[]> {
-  const demo = (folder: string, setup = undefined as ReturnType<typeof assessSetup> | undefined): QueueViewModel =>
-    buildQueueViewModel(demoAnalysis(), { folder, lastSeen: T('2026-11-02T09:15'), ...(setup ? { setup } : {}) });
+  const demo = (folder: string, setup = undefined as ReturnType<typeof assessSetup> | undefined, tagFilter: string[] = []): QueueViewModel =>
+    buildQueueViewModel(demoAnalysis(), { folder, lastSeen: T('2026-11-02T09:15'), tagFilter, ...(setup ? { setup } : {}) });
   const unreadable = assessSetup({ hasWorkspaceDir: true, analysis: undefined, claudeMd: undefined, configError: 'config.json is not valid JSON: Unexpected token } in JSON at position 41' });
   return {
     queue: [demo('demo')],
     'needs-instructions': [demo('demo', assessSetup({ hasWorkspaceDir: true, analysis: demoAnalysis(), claudeMd: undefined }))],
     fresh: [setupViewModel('my-project', missing)],
     'config-error': [withSetup(errorViewModel('demo', 'config.json is not valid JSON: Unexpected token } in JSON at position 41'), unreadable)],
+    'tag-filter': [demo('demo', undefined, ['OPS'])],
     'two-folders': [demo('api'), setupViewModel('docs', missing)],
   };
 }

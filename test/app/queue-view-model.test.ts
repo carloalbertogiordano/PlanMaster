@@ -211,6 +211,8 @@ describe('errorViewModel', () => {
       blocked: [],
       blockedCount: 0,
       news: { sinceLabel: '', events: [] },
+      tags: [],
+      filter: [],
       error: 'config.json is not valid JSON',
     });
   });

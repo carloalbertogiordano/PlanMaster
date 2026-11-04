@@ -1,4 +1,4 @@
-import type { BlockedGroupModel, LaneBlockModel, QueueViewModel, SetupNotice } from '../app/index.js';
+import type { BlockedGroupModel, LaneBlockModel, QueueViewModel, SetupNotice, TagOption } from '../app/index.js';
 import { chipElement, el } from './dom.js';
 import { renderEvent, renderRow, type Reveal } from './rows.js';
 
@@ -17,6 +17,8 @@ export interface Handlers {
   toggleLane(key: string): void;
   /** The user asked for the guided setup of a folder. */
   setup(folder: string): void;
+  /** The user chose which tags to show in a folder; an empty list shows everything. */
+  filter(folder: string, tags: string[]): void;
 }
 
 const TABS: readonly { id: TabId; label: string }[] = [
@@ -53,8 +55,8 @@ export function render(root: HTMLElement, folders: QueueViewModel[], state: View
   }
 }
 
-function emptyMessage(): HTMLElement {
-  return el('p', 'empty', 'No lanes yet. Create .planmaster/lanes/<ID>.md in this workspace to start.');
+function emptyMessage(filtered: boolean): HTMLElement {
+  return el('p', 'empty', filtered ? 'Nothing carries the selected tags.' : 'No lanes yet. Create .planmaster/lanes/<ID>.md in this workspace to start.');
 }
 
 /* ---------- tabs ---------- */
@@ -123,6 +125,7 @@ function renderPanel(folders: QueueViewModel[], state: ViewState, handlers: Hand
       section.append(row);
     }
     if (folder.setup) section.append(renderSetupCard(folder.folder, folder.setup, handlers));
+    if (folder.tags.length > 0) section.append(renderTagBar(folder, handlers));
     section.append(renderTab(folder, state, handlers));
     panel.append(section);
   }
@@ -143,6 +146,38 @@ function renderSetupCard(folder: string, notice: SetupNotice, handlers: Handlers
   start.addEventListener('click', () => { handlers.setup(folder); });
   card.append(start);
   return card;
+}
+
+/** The tags to filter by, as toggle buttons. It is shown on every tab, because the filter applies to all of them. */
+function renderTagBar(folder: QueueViewModel, handlers: Handlers): HTMLElement {
+  const bar = el('div', 'tag-bar');
+  bar.setAttribute('role', 'group');
+  bar.setAttribute('aria-label', 'Filter by tag');
+  bar.append(el('span', 'tag-bar-title', 'Tags'), ...folder.tags.map((tag) => tagToggle(folder, tag, handlers)));
+  if (folder.filter.length > 0) {
+    const clear = el('button', 'tag-clear', 'Clear');
+    clear.type = 'button';
+    clear.dataset.key = `tag-clear:${folder.folder}`;
+    clear.title = 'Show everything again';
+    clear.addEventListener('click', () => { handlers.filter(folder.folder, []); });
+    bar.append(clear);
+  }
+  return bar;
+}
+
+function tagToggle(folder: QueueViewModel, tag: TagOption, handlers: Handlers): HTMLButtonElement {
+  const selected = folder.filter.includes(tag.key);
+  const button = el('button', 'tag-toggle', tag.key);
+  button.type = 'button';
+  button.dataset.key = `tag:${folder.folder}/${tag.key}`;
+  button.setAttribute('aria-pressed', String(selected));
+  button.title = tag.label;
+  const label = tag.label === tag.key ? '' : `, ${tag.label}`;
+  button.setAttribute('aria-label', `${tag.key}${label}, ${tag.count} item${tag.count === 1 ? '' : 's'}`);
+  button.addEventListener('click', () => {
+    handlers.filter(folder.folder, selected ? folder.filter.filter((key) => key !== tag.key) : [...folder.filter, tag.key]);
+  });
+  return button;
 }
 
 function renderTab(folder: QueueViewModel, state: ViewState, handlers: Handlers): HTMLElement {
@@ -166,7 +201,7 @@ function renderTab(folder: QueueViewModel, state: ViewState, handlers: Handlers)
 
 function renderStack(folder: QueueViewModel, state: ViewState, handlers: Handlers): HTMLElement {
   const wrapper = el('div', 'stack');
-  if (folder.lanes.length === 0 && !folder.setup) wrapper.append(emptyMessage());
+  if (folder.lanes.length === 0 && !folder.setup) wrapper.append(emptyMessage(folder.filter.length > 0));
   for (const lane of folder.lanes) {
     wrapper.append(renderLane(folder.folder, lane, state.expanded.includes(laneKey(folder.folder, lane.lane)), handlers));
   }

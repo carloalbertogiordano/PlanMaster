@@ -1,5 +1,6 @@
 import type { Analysis } from '../core/index.js';
 import type { QueueViewModel } from './queue-view-model.js';
+import { parseTagSelection } from './tag-selection.js';
 
 /** What the queue view can ask the extension to do. */
 export type WebviewMessage =
@@ -8,6 +9,8 @@ export type WebviewMessage =
   | { type: 'markSeen'; folder: string }
   /** The user asked for the guided setup of this folder. */
   | { type: 'setup'; folder: string }
+  /** The user chose which tags to show; an empty list shows everything. */
+  | { type: 'filter'; folder: string; tags: string[] }
   /** Sent after each draw, so the extension can tell that the view really showed something. */
   | { type: 'drawn'; lanes: number };
 
@@ -41,6 +44,8 @@ export function parseWebviewMessage(raw: unknown): WebviewMessage | null {
       return parseMarkSeen(fields);
     case 'setup':
       return parseSetup(fields);
+    case 'filter':
+      return parseFilter(fields);
     case 'drawn':
       return parseDrawn(fields);
     default:
@@ -60,6 +65,11 @@ function parseMarkSeen({ folder }: Fields): WebviewMessage | null {
 
 function parseSetup({ folder }: Fields): WebviewMessage | null {
   return isBoundedString(folder, MAX_FOLDER_LENGTH) ? { type: 'setup', folder } : null;
+}
+
+function parseFilter({ folder, tags }: Fields): WebviewMessage | null {
+  const selection = parseTagSelection(tags);
+  return isBoundedString(folder, MAX_FOLDER_LENGTH) && selection !== null ? { type: 'filter', folder, tags: selection } : null;
 }
 
 function parseDrawn({ lanes }: Fields): WebviewMessage | null {

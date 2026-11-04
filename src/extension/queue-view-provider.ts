@@ -10,6 +10,8 @@ export interface QueueViewHost {
   instances(): readonly WorkspaceInstance[];
   /** Starts the guided setup for the folder with this name; returns false if there is no such folder. */
   runSetup(folderName: string): Promise<boolean>;
+  /** Remembers which tags the view of the folder with this name shows; returns false if there is no such folder. */
+  setTagFilter(folderName: string, tags: string[]): Promise<boolean>;
 }
 
 /** The sidebar view that shows the queue. It only draws what it is given and asks the extension to do things. */
@@ -72,6 +74,8 @@ export class QueueViewProvider implements vscode.WebviewViewProvider {
         return true;
       case 'setup':
         return this.host.runSetup(message.folder);
+      case 'filter':
+        return this.host.setTagFilter(message.folder, message.tags);
       default:
         return this.handleItemMessage(message);
     }

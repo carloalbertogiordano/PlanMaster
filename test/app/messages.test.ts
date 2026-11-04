@@ -9,6 +9,16 @@ describe('parseWebviewMessage', () => {
     expect(parseWebviewMessage({ type: 'markSeen', folder: 'demo' })).toEqual({ type: 'markSeen', folder: 'demo' });
     expect(parseWebviewMessage({ type: 'drawn', lanes: 5 })).toEqual({ type: 'drawn', lanes: 5 });
     expect(parseWebviewMessage({ type: 'setup', folder: 'demo' })).toEqual({ type: 'setup', folder: 'demo' });
+    expect(parseWebviewMessage({ type: 'filter', folder: 'demo', tags: ['SEC', 'OPS'] })).toEqual({ type: 'filter', folder: 'demo', tags: ['SEC', 'OPS'] });
+    expect(parseWebviewMessage({ type: 'filter', folder: 'demo', tags: [] })).toEqual({ type: 'filter', folder: 'demo', tags: [] });
+  });
+
+  it.each([
+    ['tags that are not a list', { type: 'filter', folder: 'f', tags: 'SEC' }],
+    ['a tag that is not valid', { type: 'filter', folder: 'f', tags: ['<script>'] }],
+    ['no folder', { type: 'filter', tags: ['SEC'] }],
+  ])('drops a filter with %s', (_name, raw) => {
+    expect(parseWebviewMessage(raw)).toBeNull();
   });
 
   it('drops unexpected extra properties', () => {

@@ -27,7 +27,7 @@ function q(selector: string): HTMLElement {
 beforeEach(() => {
   root = document.createElement('div');
   document.body.replaceChildren(root);
-  handlers = { reveal: vi.fn(), markSeen: vi.fn(), selectTab: vi.fn(), toggleLane: vi.fn(), setup: vi.fn() };
+  handlers = { reveal: vi.fn(), markSeen: vi.fn(), selectTab: vi.fn(), toggleLane: vi.fn(), setup: vi.fn(), filter: vi.fn() };
 });
 
 describe('tabs', () => {
@@ -354,5 +354,85 @@ describe('restoreViewState', () => {
 
   it('keeps a valid tab and only the string keys', () => {
     expect(restoreViewState({ tab: 'news', expanded: ['a/A', 3, 'b/B'] })).toEqual({ tab: 'news', expanded: ['a/A', 'b/B'] });
+  });
+});
+
+describe('the tag filter bar', () => {
+  const config = JSON.stringify({ people: ['alice'], tags: { SEC: 'Security review', OPS: 'Operations' } });
+  const files = [laneFile('A', `
+- [~] A-1 Rotate the keys tag:SEC since:2026-11-02T11:00
+- [ ] A-2 Quarterly report tag:OPS
+- [ ] A-3 Untagged`)];
+  const tagged = (tagFilter: string[] = [], label = 'Security review'): QueueViewModel => {
+    const model = buildQueueViewModel(run(files, undefined, config.replace('Security review', label)), { folder: 'demo', lastSeen: 0, tagFilter });
+    return model;
+  };
+  const toggles = (): HTMLElement[] => [...root.querySelectorAll<HTMLElement>('.tag-toggle')];
+
+  it('is not drawn when nothing is tagged', () => {
+    draw([buildQueueViewModel(run([laneFile('A', '- [ ] A-1 Plain')]), { folder: 'demo', lastSeen: 0 })]);
+    expect(root.querySelector('.tag-bar')).toBeNull();
+  });
+
+  it('offers one toggle button per tag, with the label as its tooltip and the count in its description', () => {
+    draw([tagged()]);
+    expect(toggles().map((b) => b.textContent)).toEqual(['SEC', 'OPS']);
+    expect(toggles()[0]?.title).toBe('Security review');
+    expect(toggles()[0]?.getAttribute('aria-label')).toBe('SEC, Security review, 1 item');
+    expect(toggles().every((b) => b.tagName === 'BUTTON' && b.getAttribute('type') === 'button')).toBe(true);
+  });
+
+  it('marks the selected tags as pressed', () => {
+    draw([tagged(['OPS'])]);
+    expect(toggles().map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'true']);
+  });
+
+  it('asks to add a tag to the selection, and to take it out again', () => {
+    draw([tagged(['OPS'])]);
+    toggles()[0]?.click();
+    expect(handlers.filter).toHaveBeenLastCalledWith('demo', ['OPS', 'SEC']);
+    toggles()[1]?.click();
+    expect(handlers.filter).toHaveBeenLastCalledWith('demo', []);
+  });
+
+  it('has a clear button only while something is selected', () => {
+    draw([tagged()]);
+    expect(root.querySelector('.tag-clear')).toBeNull();
+    draw([tagged(['SEC'])]);
+    q('.tag-clear').click();
+    expect(handlers.filter).toHaveBeenLastCalledWith('demo', []);
+  });
+
+  it('stays on every tab', () => {
+    for (const tab of ['stack', 'blocked', 'news'] as const) {
+      draw([tagged(['SEC'])], initial(tab));
+      expect(root.querySelector('.tag-bar'), tab).not.toBeNull();
+    }
+  });
+
+  it('shows the tags of an item as chips', () => {
+    draw([tagged()], initial('stack', ['demo/A']));
+    expect(texts('.chip.tag')).toEqual(['SEC', 'OPS']);
+  });
+
+  it('draws a label from config.json as plain text', () => {
+    draw([tagged([], '<img src=x onerror=alert(1)>')]);
+    expect(root.querySelector('img')).toBeNull();
+    expect(toggles()[0]?.title).toBe('<img src=x onerror=alert(1)>');
+  });
+
+  it('gives each folder its own bar when there are several', () => {
+    draw([tagged(), { ...tagged(['SEC']), folder: 'other' }]);
+    expect(root.querySelectorAll('.tag-bar')).toHaveLength(2);
+    toggles()[2]?.click();
+    expect(handlers.filter).toHaveBeenLastCalledWith('other', []);
+  });
+});
+
+describe('the stack with a filter that matches nothing', () => {
+  it('says so instead of asking for lanes to be created', () => {
+    const model = buildQueueViewModel(run([laneFile('A', '- [ ] A-1 One tag:SEC')], undefined, JSON.stringify({ tags: { SEC: 'Security' } })), { folder: 'demo', lastSeen: 0, tagFilter: ['NOPE'] });
+    draw([model]);
+    expect(texts('.empty')).toEqual(['Nothing carries the selected tags.']);
   });
 });

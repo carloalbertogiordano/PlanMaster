@@ -34,3 +34,4 @@ Three findings on two items, all intentional:
 - `ref:` on open and closed items.
 - Closed items older than `doneVisibleDays` (`B-09`, `C-02`, `E-04`).
 - A lane with one item in progress and nothing else active (`D`, `E`).
+- Tags: three are declared in `config.json` (`SEC`, `DOC`, `OPS`) and used on top-level items across the lanes (for example `A-07`, `B-12`, `D-05`). Their children inherit them, which the tag filter of the queue view uses.

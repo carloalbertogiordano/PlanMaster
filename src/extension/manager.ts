@@ -70,6 +70,13 @@ export class InstanceManager implements vscode.Disposable, CommandHost, QueueVie
     return true;
   }
 
+  async setTagFilter(folderName: string, tags: string[]): Promise<boolean> {
+    const instance = this.instances().find((candidate) => candidate.folder.name === folderName);
+    if (!instance) return false;
+    await instance.setTagFilter(tags);
+    return true;
+  }
+
   /** What the setup assessment says for each folder, for tests. */
   setupReasons(): { folder: string; reason: string | null }[] {
     return (vscode.workspace.workspaceFolders ?? []).map((folder) => ({ folder: folder.name, reason: this.coordinator.assessmentFor(folder)?.reason ?? null }));

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CONFIG_PATH, QueueController, SeenTracker, buildQueueViewModel, classifyPath, errorViewModel, isKnownPath, trimTrailingSlashes, withSetup, type QueueViewModel, type SetupAssessment, type ViewState } from '../app/index.js';
+import { CONFIG_PATH, QueueController, SeenTracker, TagFilterStore, buildQueueViewModel, classifyPath, errorViewModel, isKnownPath, trimTrailingSlashes, withSetup, type QueueViewModel, type SetupAssessment, type ViewState } from '../app/index.js';
 import { DEFAULT_CONFIG, type Analysis } from '../core/index.js';
 import { openAtLine } from './editor.js';
 import { relativePath } from './uris.js';
@@ -21,6 +21,7 @@ export class WorkspaceInstance implements vscode.Disposable {
   private readonly views: View[];
   private readonly watchers: vscode.Disposable[] = [];
   private readonly seen: SeenTracker;
+  private readonly tagFilter: TagFilterStore;
   private readonly changeListeners: (() => void)[] = [];
   private lanesDir = DEFAULT_CONFIG.lanesDir;
   private lanesWatcher: vscode.Disposable | undefined;
@@ -29,6 +30,7 @@ export class WorkspaceInstance implements vscode.Disposable {
     const { extensionUri, output, storage, multiRoot } = services;
     this.folder = folder;
     this.seen = new SeenTracker(storage, `planmaster.lastSeen:${folder.uri.toString()}`);
+    this.tagFilter = new TagFilterStore(storage, `planmaster.tagFilter:${folder.uri.toString()}`);
     this.views = [
       new DiagnosticsView(folder.uri, folder.name),
       new StatusView(multiRoot ? `${folder.name}: ` : ''),
@@ -66,13 +68,19 @@ export class WorkspaceInstance implements vscode.Disposable {
     const state = this.controller.state;
     if (state === undefined) return undefined;
     if (state.kind === 'config-error') return withSetup(errorViewModel(this.folder.name, state.message), setup);
-    return buildQueueViewModel(state.analysis, { folder: this.folder.name, lastSeen: this.seen.value, ...(setup ? { setup } : {}) });
+    return buildQueueViewModel(state.analysis, { folder: this.folder.name, lastSeen: this.seen.value, tagFilter: this.tagFilter.value, ...(setup ? { setup } : {}) });
   }
 
   /** The message about config.json when it cannot be read. */
   get configError(): string | undefined {
     const state = this.controller.state;
     return state?.kind === 'config-error' ? state.message : undefined;
+  }
+
+  /** Remembers which tags the view of this folder shows; an empty list shows everything. */
+  async setTagFilter(tags: string[]): Promise<void> {
+    await this.tagFilter.set(tags);
+    this.notifyModelChange();
   }
 
   async markSeen(): Promise<void> {

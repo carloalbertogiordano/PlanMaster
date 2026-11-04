@@ -17,6 +17,7 @@ import {
 } from '../core/index.js';
 import { dependencyChip, rowOf, type Chip, type RowContext, type RowModel } from './rows.js';
 import type { SetupAssessment, SetupReason } from './setup.js';
+import { isRelevant, scopeOf, tagOptions, type Scope, type TagOption } from './tag-filter.js';
 
 export interface LaneBlockModel {
   lane: string;
@@ -72,6 +73,9 @@ export interface QueueViewModel {
   blocked: BlockedGroupModel[];
   blockedCount: number;
   news: { sinceLabel: string; events: NewsEventModel[] };
+  /** The tags the filter bar offers, and which of them are selected. */
+  tags: TagOption[];
+  filter: string[];
   /** Set instead of the content above when the folder cannot be analysed, for example a broken config.json. */
   error?: string;
   /** Set when the project needs the guided setup. */
@@ -84,6 +88,8 @@ export interface BuildOptions {
   lastSeen: number;
   /** What the guided setup found; shown as a card when it says setup is needed. */
   setup?: SetupAssessment;
+  /** Tags the user selected in the filter bar; only the items that carry one of them are shown. */
+  tagFilter?: readonly string[];
 }
 
 function noticeOf({ reason, headline, detail, problems }: SetupAssessment): SetupNotice | undefined {
@@ -98,12 +104,16 @@ export function withSetup(model: QueueViewModel, assessment: SetupAssessment | u
 
 /** What a folder without any PlanMaster files shows: only the invitation to set up. */
 export function setupViewModel(folder: string, assessment: SetupAssessment): QueueViewModel {
-  return withSetup({ folder, lanes: [], blocked: [], blockedCount: 0, news: { sinceLabel: '', events: [] } }, assessment);
+  return withSetup(emptyModel(folder), assessment);
 }
 
 /** What a folder shows when its queue cannot be analysed. */
 export function errorViewModel(folder: string, message: string): QueueViewModel {
-  return { folder, lanes: [], blocked: [], blockedCount: 0, news: { sinceLabel: '', events: [] }, error: message };
+  return { ...emptyModel(folder), error: message };
+}
+
+function emptyModel(folder: string): QueueViewModel {
+  return { folder, lanes: [], blocked: [], blockedCount: 0, news: { sinceLabel: '', events: [] }, tags: [], filter: [] };
 }
 
 export function buildQueueViewModel(analysis: Analysis, options: BuildOptions): QueueViewModel {
@@ -111,28 +121,33 @@ export function buildQueueViewModel(analysis: Analysis, options: BuildOptions): 
     now: analysis.now,
     staleIds: new Set(analysis.findings.filter((f) => f.code === 'PM012').map((f) => f.itemId ?? '')),
   };
-  const blocked = blockedGroups(analysis).map((group) => blockedGroupModel(group, analysis, context));
+  const selected = options.tagFilter ?? [];
+  const scope = scopeOf(selected);
+  const blocked = blockedGroups(analysis, scope).map((group) => blockedGroupModel(group, analysis, context));
   const notice = options.setup ? noticeOf(options.setup) : undefined;
+  const lanes = selected.length === 0 ? analysis.lanes : analysis.lanes.filter((lane) => lane.items.some(scope));
   return {
     ...(notice ? { setup: notice } : {}),
     folder: options.folder,
-    lanes: analysis.lanes.map((lane) => laneBlock(lane, analysis, context)),
+    tags: tagOptions(analysis, selected),
+    filter: [...selected],
+    lanes: lanes.map((lane) => laneBlock(lane, analysis, context, scope)),
     blocked,
     blockedCount: blocked.reduce((sum, group) => sum + group.rows.length, 0),
     news: {
       sinceLabel: sinceLabel(options.lastSeen, analysis.now),
-      events: deriveEvents(analysis, options.lastSeen).map((event) => newsEvent(event, context)),
+      events: deriveEvents(analysis, options.lastSeen).filter((event) => scope(event.item)).map((event) => newsEvent(event, context)),
     },
   };
 }
 
 /* ---------- stack ---------- */
 
-function laneBlock(lane: LaneFile, analysis: Analysis, context: RowContext): LaneBlockModel {
-  const counts = laneCounts(lane);
+function laneBlock(lane: LaneFile, analysis: Analysis, context: RowContext, scope: Scope): LaneBlockModel {
+  const counts = laneCounts(lane, scope);
   const days = analysis.config.doneVisibleDays;
-  const focusItems = lane.roots.filter((item) => item.marker === '~');
-  const all = flatten(lane.roots, context, days);
+  const focusItems = lane.roots.filter((item) => item.marker === '~' && isRelevant(item, scope));
+  const all = flatten(lane.roots, context, days, scope);
   return {
     lane: lane.lane,
     title: lane.frontMatter.title ?? '(untitled)',
@@ -143,8 +158,8 @@ function laneBlock(lane: LaneFile, analysis: Analysis, context: RowContext): Lan
     blockedCount: counts.blocked,
     closedCount: counts.closed,
     idle: focusItems.length === 0,
-    focus: flatten(focusItems, context, days).rows,
-    next: upNext(lane).map((item) => rowOf(item, context)),
+    focus: flatten(focusItems, context, days, scope).rows,
+    next: upNext(lane, 2, scope).map((item) => rowOf(item, context)),
     all: all.rows,
     hiddenClosed: all.hidden,
   };
@@ -159,15 +174,16 @@ function hideable(item: Item, context: RowContext, days: number): boolean {
   return isClosed(item) && !isVisible(item, context.now, days) && item.children.every((child) => hideable(child, context, days));
 }
 
-function flatten(items: Item[], context: RowContext, days: number): { rows: RowModel[]; hidden: number } {
+function flatten(items: Item[], context: RowContext, days: number, scope: Scope): { rows: RowModel[]; hidden: number } {
   const result = { rows: [] as RowModel[], hidden: 0 };
   for (const item of items) {
+    if (!isRelevant(item, scope)) continue;
     if (hideable(item, context, days)) {
       result.hidden += 1 + countDescendants(item);
       continue;
     }
     result.rows.push(rowOf(item, context));
-    const inner = flatten(item.children, context, days);
+    const inner = flatten(item.children, context, days, scope);
     result.rows.push(...inner.rows);
     result.hidden += inner.hidden;
   }

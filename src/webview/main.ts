@@ -33,6 +33,7 @@ const handlers: Handlers = {
   reveal: (folder, path, line) => { api.postMessage({ type: 'reveal', folder, path, line }); },
   markSeen: (folder) => { api.postMessage({ type: 'markSeen', folder }); },
   setup: (folder) => { api.postMessage({ type: 'setup', folder }); },
+  filter: (folder, tags) => { api.postMessage({ type: 'filter', folder, tags }); },
   selectTab: (tab) => { change({ ...state, tab }); },
   toggleLane: (key) => {
     const open = state.expanded.includes(key);
