@@ -35,7 +35,7 @@ The extension only reads these files. It checks them against the format, draws t
 
 ## What you get
 
-The queue view has three tabs. Stack shows each lane with its item in progress, what is up next and how many items are blocked or closed. Blocked lists everything that is waiting, with the person or item and for how long. What's new lists what changed since you last pressed Mark Everything as Seen.
+The queue view has three tabs. Stack shows each lane with its item in progress, what is up next and how many items are blocked or closed. Finished items sit in a Done section at the bottom of each lane, folded away until you open it. Blocked lists everything that is waiting, with the person or item and for how long. What's new lists what changed since you last pressed Mark Everything as Seen.
 
 When items carry tags, a row of tag buttons sits above the queue. Select one or more and every tab shows only the items that carry them, whatever lane they are in. The selection is remembered per project.
 

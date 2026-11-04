@@ -46,8 +46,14 @@ describe('stack: lane blocks', () => {
     expect(lane(model, 'D').next.map((r) => r.id)).toEqual(['D-05', 'D-06']);
   });
 
-  it('shows the whole tree in file order when expanded', () => {
-    expect(lane(model, 'C').all.map((r) => r.id)).toEqual(['C-05', 'C-05a', 'C-05b', 'C-04', 'C-06', 'C-03', 'C-02']);
+  it('shows the open tree in file order when expanded, without the finished items', () => {
+    expect(lane(model, 'C').all.map((r) => r.id)).toEqual(['C-05', 'C-05a', 'C-05b', 'C-04', 'C-06']);
+  });
+
+  it('keeps the finished items apart, in a section of their own', () => {
+    expect(lane(model, 'C').done.map((r) => r.id)).toEqual(['C-03', 'C-02']);
+    expect(lane(model, 'D').done.map((r) => r.id)).toEqual(['D-03']);
+    expect(lane(model, 'E').done.map((r) => r.id)).toEqual(['E-04']);
   });
 
   it('has an empty focus for a lane with nothing in progress', () => {
@@ -63,7 +69,7 @@ describe('stack: lane blocks', () => {
 
 describe('stack: row chips', () => {
   const model = demoModel();
-  const chips = (laneId: string, id: string) => lane(model, laneId).all.find((r) => r.id === id)?.chips;
+  const chips = (laneId: string, id: string) => [...lane(model, laneId).all, ...lane(model, laneId).done].find((r) => r.id === id)?.chips;
 
   it('shows how long an item has been in progress, then its references', () => {
     expect(chips('D', 'D-04')).toEqual([{ kind: 'doing', text: 'for 1 h 28 min' }, { kind: 'plain', text: 'P-017' }]);
@@ -96,7 +102,7 @@ describe('stack: row chips', () => {
   });
 
   it('describes the state in words for assistive technology', () => {
-    expect(lane(model, 'D').all.map((r) => r.stateLabel)).toEqual(['in progress', 'blocked', 'to do', 'to do', 'blocked', 'done']);
+    expect(lane(model, 'D').all.map((r) => r.stateLabel)).toEqual(['in progress', 'blocked', 'to do', 'to do', 'blocked']);
   });
 });
 
@@ -111,8 +117,13 @@ describe('stack: closed items that are too old', () => {
   const block = buildQueueViewModel(run([laneFile('A', body)]), { folder: 'f', lastSeen: 0 }).lanes[0]!;
 
   it('hides old closed subtrees and counts them', () => {
-    expect(block.all.map((r) => r.id)).toEqual(['A-1', 'A-2', 'A-4', 'A-4a']);
+    expect(block.all.map((r) => r.id)).toEqual(['A-1', 'A-4', 'A-4a']);
+    expect(block.done.map((r) => r.id)).toEqual(['A-2']);
     expect(block.hiddenClosed).toBe(2);
+  });
+
+  it('keeps a closed parent with an open child in the open tree', () => {
+    expect(block.done.some((r) => r.id === 'A-4')).toBe(false);
   });
 
   it('never hides an item that is still open', () => {

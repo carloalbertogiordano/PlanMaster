@@ -1,6 +1,6 @@
 // Draws the real queue view (its stylesheet and script) in headless Chrome at several widths and in several themes,
 // so that layout problems can be looked at without opening an editor.
-// Needs Google Chrome and ImageMagick (`magick`) on the machine. Usage: node scripts/preview.mjs [out-dir] [--themes midnight,banana-panic] [--widths 160,260,420] [--scenarios queue,fresh]
+// Needs Google Chrome and ImageMagick (`magick`) on the machine. Usage: node scripts/preview.mjs [out-dir] [--themes midnight,banana-panic] [--widths 160,260,420] [--scenarios queue,fresh] [--expanded demo/C#done]
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -21,6 +21,9 @@ await build({ entryPoints: [path.join(root, 'test/support/preview-models.ts')], 
 const { previewScenarios } = await import(pathToFileURL(path.join(root, 'dist/preview-models.mjs')).href);
 const scenarios = previewScenarios();
 const wanted = option('scenarios', Object.keys(scenarios).join(','));
+// Lanes to draw expanded, and done sections to draw open, as the keys the view keeps them under (for example demo/C,demo/C#done).
+const expandedKeys = option('expanded', []).filter(Boolean);
+const viewState = expandedKeys.length > 0 ? { tab: 'stack', expanded: expandedKeys } : undefined;
 
 // The editor gives a webview its colors as --vscode-* variables, named after the theme's color keys.
 function variables(themeFile) {
@@ -39,7 +42,7 @@ body { background-color: transparent; color: var(--vscode-editor-foreground); fo
 </style>
 <link rel="stylesheet" href="${pathToFileURL(path.join(root, 'media/queue-view.css')).href}">
 </head><body><div id="root"></div>
-<script>window.acquireVsCodeApi = () => ({ postMessage() {}, getState() { return undefined; }, setState() {} });</script>
+<script>window.acquireVsCodeApi = () => ({ postMessage() {}, getState() { return ${JSON.stringify(viewState)}; }, setState() {} });</script>
 <script src="${pathToFileURL(path.join(root, 'dist/webview.js')).href}"></script>
 <script>window.postMessage({ type: 'state', folders: ${JSON.stringify(folders)} }, '*');</script>
 </body></html>`;

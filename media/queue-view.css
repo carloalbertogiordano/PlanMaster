@@ -38,6 +38,7 @@ button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-off
 .bar .doing { background: var(--doing); }
 .lane-body { padding: 2px 2px 4px; }
 .sub { font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 6px 10px 2px; }
+.done-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; margin-top: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
 .lane-footer { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 10px 8px; border-top: 1px solid var(--line); }
 
 .row { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; width: 100%; padding: 4px 10px 4px calc(10px + var(--depth, 0) * 16px); border-radius: 4px; align-items: start; }
@@ -81,16 +82,17 @@ button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-off
 .tag-bar-title { font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-right: 2px; }
 .chip.tag { background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); border-color: transparent; }
 
-.setup-link, .mark-seen, .toggle, .tag-toggle, .tag-clear {
+.setup-link, .mark-seen, .toggle, .done-toggle, .tag-toggle, .tag-clear {
   display: inline-flex; align-items: center; justify-content: center; min-height: 24px; padding: 3px 10px;
   border: 1px solid var(--vscode-button-border, var(--line)); border-radius: 4px;
   background: var(--vscode-button-secondaryBackground, var(--vscode-list-inactiveSelectionBackground));
   color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
   text-align: center; white-space: nowrap;
 }
-.setup-link:hover, .mark-seen:hover, .toggle:hover, .tag-toggle:hover, .tag-clear:hover { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
+.setup-link:hover, .mark-seen:hover, .toggle:hover, .done-toggle:hover, .tag-toggle:hover, .tag-clear:hover { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
 .setup-link { margin-left: auto; }
 .toggle { margin-left: auto; }
+.done-toggle { margin-left: auto; text-transform: none; letter-spacing: normal; font-size: 1.25em; }
 .tag-toggle, .tag-clear { min-height: 22px; padding: 0 8px; font-family: var(--vscode-editor-font-family); font-size: 0.9em; }
 .tag-toggle[aria-pressed="true"] { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-color: var(--vscode-button-background); }
 .tag-toggle[aria-pressed="true"]:hover { background: var(--vscode-button-hoverBackground, var(--vscode-button-background)); }

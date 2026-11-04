@@ -124,6 +124,8 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--doing); ou
 .sub { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 6px 8px 2px; font-weight: 600; }
 .lane-f { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 6px 10px 8px; border-top: 1px solid var(--line); font-size: 12px; color: var(--mut); }
 .lane-f .sp { flex: 1; }
+.done-h { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; border-top: 1px solid var(--line); }
+.done-h .tg { text-transform: none; letter-spacing: normal; font-size: 1.25em; color: var(--doing); }
 .lane-f .tg { color: var(--doing); font-weight: 500; }
 .lane-f .tg:hover { text-decoration: underline; }
 .empty { color: var(--mut); font-size: 12.5px; padding: 8px; }
@@ -599,19 +601,27 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
     return h;
   }
 
+  function countKids(it) { return it.kids.reduce(function (n, k) { return n + (relevant(k) ? 1 + countKids(k) : 0); }, 0); }
+  function finished(it) { return isClosed(it) && it.kids.every(finished); }
   function laneBlock(lane) {
-    var c = count(lane), full = !!state.expanded[lane.id];
+    var c = count(lane), full = !!state.expanded[lane.id], doneOpen = !!state.expanded[lane.id + '#done'];
+    var finishedItems = lane.items.filter(finished);
     var pd = c.total ? (c.closed / c.total * 100) : 0, pp = c.total ? (c.doing / c.total * 100) : 0;
     var h = '<section class="lane"><div class="lane-h"><span class="badge">' + lane.id + '</span><span class="lane-t">' + esc(lane.title) + '</span><span class="lane-c">' + c.closed + '/' + c.total + '</span></div>' +
       '<div class="bar"><i class="d" style="width:' + pd + '%"></i><i class="p" style="width:' + pp + '%"></i></div><div class="lane-b">';
     if (full) {
-      lane.items.forEach(function (it) { h += subtree(it, lane, 0); });
+      lane.items.filter(function (it) { return !finished(it); }).forEach(function (it) { h += subtree(it, lane, 0); });
     } else {
       var doing = lane.items.filter(function (i) { return i.st === '~' && relevant(i); });
       var next = lane.items.filter(function (i) { return i.st === '' && inScope(i); }).slice(0, 2);
       if (doing.length) { h += '<div class="sub">In progress</div>'; doing.forEach(function (it) { h += subtree(it, lane, 0); }); }
       else h += '<div class="empty">Nothing in progress.</div>';
       if (next.length) { h += '<div class="sub">Up next</div>'; next.forEach(function (it) { h += row(it, lane, 0); }); }
+    }
+    var doneRows = finishedItems.reduce(function (n, it) { return n + (relevant(it) ? 1 + countKids(it) : 0); }, 0);
+    if (doneRows) {
+      h += '<div class="sub done-h">Done<button type="button" class="tg" data-toggle="' + lane.id + '#done">' + (doneOpen ? 'Hide done' : 'Show ' + doneRows + ' done') + '</button></div>';
+      if (doneOpen) finishedItems.forEach(function (it) { h += subtree(it, lane, 0); });
     }
     h += '</div><div class="lane-f">';
     if (c.block) h += '<span class="chip block">' + c.block + ' blocked</span>';

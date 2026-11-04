@@ -34,8 +34,11 @@ export interface LaneBlockModel {
   /** Items in progress at the top level, with their subtrees. */
   focus: RowModel[];
   next: RowModel[];
-  /** The whole tree in file order, without closed items older than doneVisibleDays. */
+  /** The open work as a tree in file order: everything except the top-level items that are finished with all their children. */
   all: RowModel[];
+  /** The finished top-level items with their subtrees, for the section at the bottom. */
+  done: RowModel[];
+  /** Closed items older than doneVisibleDays, which are in neither list. */
   hiddenClosed: number;
 }
 
@@ -147,7 +150,8 @@ function laneBlock(lane: LaneFile, analysis: Analysis, context: RowContext, scop
   const counts = laneCounts(lane, scope);
   const days = analysis.config.doneVisibleDays;
   const focusItems = lane.roots.filter((item) => item.marker === '~' && isRelevant(item, scope));
-  const all = flatten(lane.roots, context, days, scope);
+  const open = flatten(lane.roots.filter((item) => !finished(item)), context, days, scope);
+  const done = flatten(lane.roots.filter(finished), context, days, scope);
   return {
     lane: lane.lane,
     title: lane.frontMatter.title ?? '(untitled)',
@@ -160,13 +164,19 @@ function laneBlock(lane: LaneFile, analysis: Analysis, context: RowContext, scop
     idle: focusItems.length === 0,
     focus: flatten(focusItems, context, days, scope).rows,
     next: upNext(lane, 2, scope).map((item) => rowOf(item, context)),
-    all: all.rows,
-    hiddenClosed: all.hidden,
+    all: open.rows,
+    done: done.rows,
+    hiddenClosed: open.hidden + done.hidden,
   };
 }
 
 function percent(part: number, whole: number): number {
   return whole === 0 ? 0 : Math.round((part / whole) * 100);
+}
+
+/** Closed, and so is everything under it; a closed parent with an open child still belongs to the open work. */
+function finished(item: Item): boolean {
+  return isClosed(item) && item.children.every(finished);
 }
 
 /** An old closed subtree is hidden only when nothing inside it is still open. */

@@ -87,8 +87,43 @@ describe('stack tab', () => {
   it('shows the whole tree when the lane is expanded, and the footer toggle says so', () => {
     draw([demo()], initial('stack', [laneKey('demo', 'C')]));
     const lane = root.querySelectorAll('.lane')[2] as HTMLElement;
-    expect([...lane.querySelectorAll('.row')].map((r) => r.getAttribute('data-id'))).toEqual(['C-05', 'C-05a', 'C-05b', 'C-04', 'C-06', 'C-03', 'C-02']);
+    expect([...lane.querySelectorAll('.row')].map((r) => r.getAttribute('data-id'))).toEqual(['C-05', 'C-05a', 'C-05b', 'C-04', 'C-06']);
     expect(lane.querySelector('.toggle')?.textContent).toBe('Collapse');
+  });
+
+  it('keeps the finished items out of sight until the done section is opened', () => {
+    draw([demo()]);
+    const lane = root.querySelectorAll('.lane')[2] as HTMLElement;
+    expect(lane.querySelector('[data-id="C-03"]')).toBeNull();
+    const toggle = lane.querySelector('.done-toggle')!;
+    expect(toggle.textContent).toBe('Show 2 done');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('shows the finished items below everything else once the done section is open', () => {
+    draw([demo()], initial('stack', ['demo/C#done']));
+    const lane = root.querySelectorAll('.lane')[2] as HTMLElement;
+    expect([...lane.querySelectorAll('.row')].map((r) => r.getAttribute('data-id'))).toEqual(['C-05', 'C-05a', 'C-05b', 'C-06', 'C-03', 'C-02']);
+    const toggle = lane.querySelector('.done-toggle')!;
+    expect(toggle.textContent).toBe('Hide done');
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('shows the done section under the whole tree when the lane is expanded too', () => {
+    draw([demo()], initial('stack', ['demo/C', 'demo/C#done']));
+    const lane = root.querySelectorAll('.lane')[2] as HTMLElement;
+    expect([...lane.querySelectorAll('.row')].map((r) => r.getAttribute('data-id'))).toEqual(['C-05', 'C-05a', 'C-05b', 'C-04', 'C-06', 'C-03', 'C-02']);
+  });
+
+  it('asks to toggle the done section of a lane on its own', () => {
+    draw([demo()]);
+    (root.querySelectorAll('.lane')[2] as HTMLElement).querySelector<HTMLElement>('.done-toggle')?.click();
+    expect(handlers.toggleLane).toHaveBeenCalledWith('demo/C#done');
+  });
+
+  it('has no done section in a lane with nothing finished', () => {
+    draw([buildQueueViewModel(run([laneFile('A', '- [ ] A-1 Todo')]), { folder: 'f', lastSeen: 0 })]);
+    expect(root.querySelector('.done-toggle')).toBeNull();
   });
 
   it('notes closed items that are hidden because they are old', () => {
@@ -133,7 +168,7 @@ describe('rows', () => {
   });
 
   it('gives each state its own icon shape, not only a color', () => {
-    draw([demo()], initial('stack', ['demo/A', 'demo/B', 'demo/C'].map((k) => k)));
+    draw([demo()], initial('stack', ['demo/A', 'demo/B', 'demo/C', 'demo/A#done', 'demo/B#done', 'demo/C#done']));
     const shapes = (state: string) => q(`.row.st-${state} svg`).innerHTML;
     const all = ['todo', 'doing', 'blocked', 'done', 'dropped'].map(shapes);
     expect(new Set(all).size).toBe(5);

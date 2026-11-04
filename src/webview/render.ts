@@ -28,6 +28,8 @@ const TABS: readonly { id: TabId; label: string }[] = [
 ];
 
 export const laneKey = (folder: string, lane: string): string => `${folder}/${lane}`;
+/** The key under which a lane remembers that its done section is open. */
+const doneKey = (folder: string, lane: string): string => `${laneKey(folder, lane)}#done`;
 
 export function restoreViewState(raw: unknown): ViewState {
   const fallback: ViewState = { tab: 'stack', expanded: [] };
@@ -203,12 +205,14 @@ function renderStack(folder: QueueViewModel, state: ViewState, handlers: Handler
   const wrapper = el('div', 'stack');
   if (folder.lanes.length === 0 && !folder.setup) wrapper.append(emptyMessage(folder.filter.length > 0));
   for (const lane of folder.lanes) {
-    wrapper.append(renderLane(folder.folder, lane, state.expanded.includes(laneKey(folder.folder, lane.lane)), handlers));
+    const open = { all: state.expanded.includes(laneKey(folder.folder, lane.lane)), done: state.expanded.includes(doneKey(folder.folder, lane.lane)) };
+    wrapper.append(renderLane(folder.folder, lane, open, handlers));
   }
   return wrapper;
 }
 
-function renderLane(folder: string, lane: LaneBlockModel, expanded: boolean, handlers: Handlers): HTMLElement {
+function renderLane(folder: string, lane: LaneBlockModel, open: { all: boolean; done: boolean }, handlers: Handlers): HTMLElement {
+  const expanded = open.all;
   const section = el('section', 'lane');
   const header = el('div', 'lane-header');
   header.append(el('span', 'lane-badge', lane.lane), el('span', 'lane-title', lane.title), el('span', 'lane-count', `${lane.closed}/${lane.total}`));
@@ -221,7 +225,12 @@ function renderLane(folder: string, lane: LaneBlockModel, expanded: boolean, han
   bar.append(closed, doing);
 
   const body = el('div', 'lane-body');
+  const doneOpen = open.done;
   body.append(...(expanded ? expandedRows(folder, lane, handlers) : collapsedRows(folder, lane, handlers)));
+  body.append(...doneRows(folder, lane, doneOpen, handlers));
+  if ((expanded || doneOpen) && lane.hiddenClosed > 0) {
+    body.append(el('div', 'empty', `${lane.hiddenClosed} older closed item${lane.hiddenClosed === 1 ? '' : 's'} hidden`));
+  }
   section.append(header, bar, body, renderLaneFooter(folder, lane, expanded, handlers));
   return section;
 }
@@ -237,11 +246,21 @@ function collapsedRows(folder: string, lane: LaneBlockModel, handlers: Handlers)
 }
 
 function expandedRows(folder: string, lane: LaneBlockModel, handlers: Handlers): HTMLElement[] {
-  const rows: HTMLElement[] = lane.all.map((row) => renderRow(row, { folder }, handlers.reveal));
-  if (lane.hiddenClosed > 0) {
-    rows.push(el('div', 'empty', `${lane.hiddenClosed} older closed item${lane.hiddenClosed === 1 ? '' : 's'} hidden`));
-  }
-  return rows;
+  return lane.all.map((row) => renderRow(row, { folder }, handlers.reveal));
+}
+
+/** The finished items, last in the block and out of sight until asked for. */
+function doneRows(folder: string, lane: LaneBlockModel, open: boolean, handlers: Handlers): HTMLElement[] {
+  if (lane.done.length === 0) return [];
+  const key = doneKey(folder, lane.lane);
+  const head = el('div', 'sub done-head', 'Done');
+  const toggle = el('button', 'done-toggle', open ? 'Hide done' : `Show ${lane.done.length} done`);
+  toggle.type = 'button';
+  toggle.dataset.key = `done:${key}`;
+  toggle.setAttribute('aria-expanded', String(open));
+  toggle.addEventListener('click', () => { handlers.toggleLane(key); });
+  head.append(toggle);
+  return [head, ...(open ? lane.done.map((row) => renderRow(row, { folder }, handlers.reveal)) : [])];
 }
 
 function renderLaneFooter(folder: string, lane: LaneBlockModel, expanded: boolean, handlers: Handlers): HTMLElement {

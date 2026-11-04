@@ -82,7 +82,9 @@ Block body, in order:
 1. **In progress**: the lane's top-level `[~]` item with its whole subtree, children in file order. If the lane has none, the text "Nothing in progress."
 2. **Up next**: the first two top-level `[ ]` items.
 
-Block footer: chips for the number of blocked and closed items, and a "Show all" / "Collapse" toggle. Expanded, the block shows the whole tree of the lane in file order, closed items dimmed. Closed items older than `doneVisibleDays` are hidden even when expanded, with a "N older closed items hidden" line.
+3. **Done**: the top-level items that are closed together with everything under them, each with its subtree, in file order. The section is last in the block and hidden by default: only its header shows, with a "Show N done" / "Hide done" toggle, where N is the number of rows. A closed parent with an open child is not finished and stays in the open work. Closed items older than `doneVisibleDays` are left out of the section, and a "N older closed items hidden" line says how many.
+
+Block footer: chips for the number of blocked and closed items, and a "Show all" / "Collapse" toggle. Expanded, the block shows the open work of the lane as a tree in file order, in place of "In progress" and "Up next"; the Done section stays below it, closed or open as before. Closed children of open items stay under their parent, dimmed.
 
 Row content: state icon, item ID (monospace), title, then chips:
 
@@ -128,7 +130,7 @@ When any item carries a tag (queue-format section 6.3), a bar of toggle buttons,
 
 - The view model (`app/queue-view-model`) is plain data built from an analysis and contains the text exactly as written in the files. All escaping is the renderer's job, which only ever sets text content.
 - The renderer (`webview/render`) is tested with a simulated DOM, including titles that contain markup. It keeps keyboard focus on the same control across redraws and follows the ARIA tab pattern, with arrow keys moving between tabs.
-- Which lanes are expanded and which tab is open are kept in the view's own state and survive the view being hidden.
+- Which lanes are expanded, which done sections are open and which tab is open are kept in the view's own state and survive the view being hidden.
 - After each draw the view reports how many lanes it showed. This lets the extension tests prove that the page really ran, not only that data was sent.
 - A folder whose `config.json` is invalid shows the error message in place of its queue.
 
