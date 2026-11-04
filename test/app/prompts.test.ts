@@ -90,7 +90,7 @@ describe('the templates in docs/prompts', () => {
 
   it('loads all of them', () => {
     const templates = loadTemplates(sources);
-    expect(templates.managedBlock.startsWith('<!-- planmaster:begin v1 -->')).toBe(true);
+    expect(templates.managedBlock.startsWith('<!-- planmaster:begin v2 -->')).toBe(true);
     expect(templates.formatReference.startsWith('# Queue format reference')).toBe(true);
     expect(templates.laneStart).toContain('{{LANE_ID}}');
   });

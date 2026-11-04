@@ -24,7 +24,7 @@ Layers 1 to 5 ship first. Layer 6 is added only if layers 1 to 5 prove insuffici
 The extension owns a block delimited by two comment markers in the project's `CLAUDE.md`:
 
 ```
-<!-- planmaster:begin v1 -->
+<!-- planmaster:begin v2 -->
 ...
 <!-- planmaster:end -->
 ```
@@ -39,7 +39,7 @@ Install behavior (`PlanMaster: Install Instructions in CLAUDE.md`):
 4. In every case show a diff and ask for confirmation before writing. The same confirmation covers `.planmaster/FORMAT.md`, which is written from the current format reference because the block points to it.
 5. Never touch any text outside the markers. If only one marker is present, refuse and explain, since the block's extent is unknown.
 
-The marker carries a version (`v1`). When a newer extension carries a newer block, the extension shows a notification offering the update. It never updates silently.
+The marker carries a version (`v2`). When a newer extension carries a newer block, the extension shows a notification offering the update. It never updates silently.
 
 The block must stay under roughly 350 words, because it is loaded into every session.
 
@@ -101,7 +101,7 @@ What is installed:
 | Hook | When it runs | What it does |
 |---|---|---|
 | `post-edit` (PostToolUse, matcher `Edit\|Write\|MultiEdit`) | After a tool changed a file | If the file is a lane or archive file with errors, exits with code 2 and prints the findings, which Claude Code shows to the session so it fixes them in the same turn. Silent for any other file and for files with only warnings. |
-| `stop` (Stop) | When the session is about to finish | For a chat bound to a lane, if the lane file has errors or the item in progress is stale (PM012), exits with code 2 and asks for the queue to be brought up to date. Silent otherwise. |
+| `stop` (Stop) | When the session is about to finish | For a chat bound to a lane, if the lane file has errors, the item in progress is stale (PM012) or a tag is not declared (PM022), exits with code 2 and asks for the queue to be brought up to date. Silent otherwise. |
 | `session-start` (SessionStart) | At the start of a session | For a chat bound to a lane, prints which lane it is together with the lane start prompt, which Claude Code adds to the context. This replaces pasting the start prompt. |
 
 Binding a chat to a lane: start it with `PLANMASTER_LANE` set, for example `PLANMASTER_LANE=B claude`. Without it, `stop` and `session-start` do nothing and only `post-edit` is active.
@@ -120,6 +120,10 @@ The command-line checker has the same findings in the same form, for use outside
 - Exit code `0` when there are no errors (warnings allowed), `1` when there is at least one error, `2` for usage or configuration errors.
 - `--json` prints the findings as a JSON array on stdout instead.
 
+### Tags
+
+Items are classified with `tag:` (queue-format section 6.3), and the set of tags belongs to the project, not to the extension: Claude decides which topics the work falls into and declares as many tags as it needs in `config.json`. The managed block states the rule in one line. Two mechanisms keep the set tidy: PM022 warns about a tag that was used without being declared, and the `stop` hook turns that warning into a request, so the missing entry is added in the same session. During a migration or the guided setup, when the old document already groups its work by codes, those codes become tags.
+
 ### The guided setup
 
 The deterministic parts of putting this in place, which change files of the user's, are done by the extension with a diff and a confirmation: the configuration, the format reference, the block in `CLAUDE.md`, and the hooks. The part that needs judgment, finding the old to-do lists, merging overlapping ones and deciding the lanes, is done by Claude from one message that the guided setup copies for the user. That message tells Claude not to touch the files the extension manages, to stop for the user's approval after looking, after planning and before it finishes, and to verify its result with the `check` command of the hook program. See extension.md section 9.2.
@@ -130,6 +134,7 @@ Existing work lives in documents that were not written for this format. The migr
 
 - Two phases: first a dry run that reports what would be created and which items are ambiguous, then writing after the user confirms.
 - Original IDs are preserved in `ref:`, new queue IDs are assigned.
+- When the source groups its work by codes or categories, each code becomes a declared tag and the items carry it with `tag:`.
 - Prose, tables of facts and lessons are not migrated. They stay in the source document, which keeps its role as a notebook, and may link queue IDs.
 - Closed items are migrated only when recent, according to a window given in the prompt.
 

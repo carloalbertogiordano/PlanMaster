@@ -22,6 +22,8 @@ export interface HookResult {
 
 const SILENT: HookResult = { exitCode: 0, stdout: '', stderr: '' };
 const MAX_LISTED = 20;
+/** Warnings that the stop hook asks about as it does about errors: a stale item, and a tag that config.json does not declare. */
+const ASKED_ABOUT: ReadonlySet<string> = new Set(['PM012', 'PM022']);
 
 type Fields = Record<string, unknown>;
 
@@ -63,15 +65,16 @@ export function configErrorHook(input: HookInput, root: string, message: string)
 
 /**
  * When the assistant is about to stop: ask it to bring the lane's queue up
- * to date if the file has errors or the item in progress has not been
- * touched for hours. The same request is made only once per session.
+ * to date if the file has errors, a tag is not declared, or the item in
+ * progress has not been touched for hours. The same request is made only
+ * once per session.
  */
 export function stopHook(input: HookInput, analysis: Analysis, lane: string | undefined, alreadyAsked: string | undefined): { result: HookResult; fingerprint?: string } {
   if (lane === undefined || input.stopHookActive) return { result: SILENT };
   const file = analysis.lanes.find((candidate) => candidate.lane === lane);
   if (!file) return { result: SILENT };
 
-  const problems = analysis.findings.filter((f) => f.file === file.path && (f.severity === 'error' || f.code === 'PM012'));
+  const problems = analysis.findings.filter((f) => f.file === file.path && (f.severity === 'error' || ASKED_ABOUT.has(f.code)));
   if (problems.length === 0) return { result: SILENT };
   const fingerprint = fingerprintOf(problems);
   if (fingerprint === alreadyAsked) return { result: SILENT };

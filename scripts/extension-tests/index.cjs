@@ -189,6 +189,19 @@ const tests = [
     assert.ok(api.queueView().folders[0].news.events.length < before.events.length);
   }],
 
+  ['filters the queue view by tag, refuses bad tags, and shows everything again when cleared', async (api) => {
+    const folder = api.states()[0].folder;
+    assert.deepEqual(api.queueView().folders[0].tags.map((tag) => tag.key), ['SEC', 'DOC', 'OPS']);
+    assert.equal(await api.handleQueueMessage({ type: 'filter', folder, tags: ['OPS'] }), true);
+    await until('the view to be filtered', () => api.queueView().folders[0].filter.length === 1);
+    assert.deepEqual(api.queueView().folders[0].lanes.map((l) => l.lane), ['B', 'C', 'D']);
+    assert.equal(await api.handleQueueMessage({ type: 'filter', folder: 'nope', tags: [] }), false);
+    assert.equal(await api.handleQueueMessage({ type: 'filter', folder, tags: ['<b>'] }), false);
+    assert.deepEqual(api.queueView().folders[0].filter, ['OPS'], 'a refused message changes nothing');
+    assert.equal(await api.handleQueueMessage({ type: 'filter', folder, tags: [] }), true);
+    await until('the view to show everything again', () => api.queueView().folders[0].lanes.length === 5);
+  }],
+
   ['shows a broken config.json in the queue view and recovers', async (api) => {
     const file = fileUri(config).fsPath;
     const original = await fs.readFile(file, 'utf8');
@@ -222,7 +235,7 @@ const tests = [
     const ui = scriptedUi(api, { confirm: true });
     assert.equal(await vscode.commands.executeCommand('planmaster.installInstructions'), 'done');
     const written = await fs.readFile(claudeFile(), 'utf8');
-    assert.match(written, /^<!-- planmaster:begin v1 -->/);
+    assert.match(written, /^<!-- planmaster:begin v2 -->/);
     assert.match(written, /<!-- planmaster:end -->\n$/);
     assert.equal(ui.previews.length, 1);
 

@@ -67,7 +67,7 @@ const tests = [
     assert.match(await fs.readFile(fileUri('.planmaster/FORMAT.md').fsPath, 'utf8'), /^# Queue format reference/);
     const claude = await fs.readFile(fileUri('CLAUDE.md').fsPath, 'utf8');
     assert.ok(claude.startsWith(original), 'the user’s own text is untouched, at the top');
-    assert.match(claude, /<!-- planmaster:begin v1 -->[\s\S]*<!-- planmaster:end -->\n$/);
+    assert.match(claude, /<!-- planmaster:begin v2 -->[\s\S]*<!-- planmaster:end -->\n$/);
     assert.ok(fsSync.existsSync(fileUri('.planmaster/hooks/planmaster-hook.cjs').fsPath), 'the hook program is in the project');
     assert.deepEqual(Object.keys(JSON.parse(await fs.readFile(fileUri('.claude/settings.json').fsPath, 'utf8')).hooks).sort(), ['PostToolUse', 'SessionStart', 'Stop']);
 

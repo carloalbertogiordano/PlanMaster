@@ -143,6 +143,20 @@ describe('stopHook', () => {
     expect(stopHook(stopInput, clean, 'A', undefined).result.exitCode).toBe(0);
   });
 
+  it('asks for a missing tag to be declared, naming the file to edit', () => {
+    const analysis = run([laneFile('A', '- [ ] A-1 Fine tag:SEC')]);
+    const { result, fingerprint } = stopHook(stopInput, analysis, 'A', undefined);
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toContain('PM022');
+    expect(result.stderr).toContain('.planmaster/config.json');
+    expect(fingerprint).toBe('PM022:A-1');
+  });
+
+  it('stays silent once the tag is declared', () => {
+    const analysis = run([laneFile('A', '- [ ] A-1 Fine tag:SEC')], undefined, JSON.stringify({ tags: { SEC: 'Security review' } }));
+    expect(stopHook(stopInput, analysis, 'A', undefined).result.exitCode).toBe(0);
+  });
+
   it('ignores warnings other than staleness', () => {
     const analysis = run([laneFile('A', 'stray prose\n- [ ] A-1 Fine')]);
     expect(stopHook(stopInput, analysis, 'A', undefined).result.exitCode).toBe(0);

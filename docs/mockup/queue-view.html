@@ -144,6 +144,13 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--doing); ou
 .chip.done { background: var(--done-bg); color: var(--done); }
 .chip.err { background: var(--err-bg); color: var(--err); }
 .chip.stale { background: var(--block-bg); color: var(--block); }
+.chip.tag { background: var(--doing); color: var(--win); }
+.tagbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.tagbar-t { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); font-weight: 600; margin-right: 2px; }
+.tagbtn { font-family: var(--font-code); font-size: 11px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--win); color: var(--fg); }
+.tagbtn:hover { background: var(--sel); }
+.tagbtn[aria-pressed="true"] { background: var(--doing); border-color: var(--doing); color: var(--win); }
+.tagbtn.clear { margin-left: auto; }
 .st-todo .ic, .st-drop .ic { color: var(--faint); }
 .st-doing .ic { color: var(--doing); }
 .st-block .ic { color: var(--block); }
@@ -326,7 +333,7 @@ select { font: inherit; font-size: 12.5px; color: var(--fg); background: var(--w
   </section>
 </div>
 
-<script type="text/plain" id="tpl-claude-block"><!-- planmaster:begin v1 -->
+<script type="text/plain" id="tpl-claude-block"><!-- planmaster:begin v2 -->
 ## Work queue (managed by PlanMaster, do not edit this block by hand)
 
 Long-running work is tracked in `.planmaster/lanes/<LANE>.md`, one file per chat (a "lane").
@@ -338,7 +345,7 @@ One item per line:
     - [ ] B-12 Title of the work ref:P-017
 
 Markers: `[ ]` todo, `[~]` in progress, `[!]` blocked, `[x]` done, `[-]` dropped.
-Children are indented two spaces. Tokens go at the end of the line: `ref:`, `wait:`, `since:`, `done:`.
+Children are indented two spaces. Tokens go at the end of the line: `tag:`, `ref:`, `wait:`, `since:`, `done:`.
 
 Rules:
 1. Starting an item: set `[~]` and add `since:`. Only one top-level item may be `[~]`.
@@ -350,6 +357,7 @@ Rules:
 7. An item is hours or days of work. Small steps belong in your own todo list, not in the queue.
 8. Anything longer than a one-line title goes in a document, linked with `ref:`.
 9. After editing a line, read it back to confirm.
+10. Classify items with `tag:KEY` (`tag:KEY1,KEY2` for several). A child inherits its parent's tags. Declare a tag first in `.planmaster/config.json` under `"tags"` as `"KEY": "short label"`. Reuse a tag that fits; add a new one when none does.
 <!-- planmaster:end --></script>
 <script type="text/plain" id="tpl-lane-start">You are lane {{LANE_ID}}: "{{LANE_TITLE}}".
 
@@ -380,31 +388,31 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
   // Same data as docs/examples/demo-workspace/.planmaster/lanes/*.md
   var LANES = [
     { id: 'A', title: 'Requirements matrix, counts and citations', updated: T('11:44'), items: [
-      I('~', 'A-07', 'Regenerate the matrix counts', { since: T('11:20') }, [
+      I('~', 'A-07', 'Regenerate the matrix counts', { tag: 'DOC', since: T('11:20') }, [
         I('x', 'A-07a', 'Run the count script', { done: T('11:22') }),
         I('~', 'A-07b', 'Re-read 8.2.2 and 8.3.1 after the recount', { since: T('11:40') }),
         I('', 'A-07c', 'Regenerate the Counts block')
       ]),
       I('', 'A-08', 'Split open requirements by who can close them'),
-      I('!', 'A-09', 'Close 6.3.4 and 6.2.9 with an identity provider read', { wait: 'bob', since: '2026-10-31T18:00' }),
+      I('!', 'A-09', 'Close 6.3.4 and 6.2.9 with an identity provider read', { tag: 'SEC', wait: 'bob', since: '2026-10-31T18:00' }),
       I('x', 'A-06', 'Fix broken citations, 653 of 653 resolve', { done: T('09:10') })
     ]},
     { id: 'B', title: 'Automated checks, gates and ratchets', updated: T('11:12'), items: [
-      I('~', 'B-12', 'Survey existing checks (gate or ratchet, cost, frozen debt)', { ref: 'ROUND-4', since: T('10:55') }, [
+      I('~', 'B-12', 'Survey existing checks (gate or ratchet, cost, frozen debt)', { tag: 'OPS', ref: 'ROUND-4', since: T('10:55') }, [
         I('x', 'B-12a', 'List ratchets with frozen debt', { done: T('11:02') }),
         I('~', 'B-12b', 'Measure the cost of each check', { since: T('11:05') }),
         I('', 'B-12c', 'Write the table for the runner proposal')
       ]),
-      I('', 'B-13', 'Add a signing-key check to diff-prod-staging.mjs', { ref: 'R-198' }),
+      I('', 'B-13', 'Add a signing-key check to diff-prod-staging.mjs', { tag: 'SEC', ref: 'R-198' }),
       I('!', 'B-14', 'Make the rules fingerprint a ratchet once permissions land'),
       I('x', 'B-09', 'Verify the backup bucket copy of 30 Oct', { done: '2026-10-30T12:50' })
     ]},
     { id: 'C', title: 'Work plans, drafting and review', updated: T('11:35'), items: [
-      I('~', 'C-05', 'Operational plan for staging parity, six steps', { ref: 'P-035', since: T('11:05') }, [
+      I('~', 'C-05', 'Operational plan for staging parity, six steps', { tag: 'OPS', ref: 'P-035', since: T('11:05') }, [
         I('x', 'C-05a', 'Diff production against staging', { ref: 'C-92', done: T('10:20') }),
         I('', 'C-05b', 'Write the six steps with the four open decisions')
       ]),
-      I('!', 'C-04', 'Chain cure plan, choose between options A and B', { ref: 'P-037', wait: 'alice', since: T('10:40') }),
+      I('!', 'C-04', 'Chain cure plan, choose between options A and B', { tag: 'DOC', ref: 'P-037', wait: 'alice', since: T('10:40') }),
       I('', 'C-06', 'Brief for large projects', { ref: 'P-036' }),
       I('x', 'C-03', 'Review P-033, the cause is not the date window', { done: T('10:15') }),
       I('-', 'C-02', 'Alternative chain cure as a separate service', { ref: 'P-030', done: '2026-10-30T16:00' })
@@ -412,19 +420,21 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
     { id: 'D', title: 'Implementation of approved plans', updated: T('11:30'), items: [
       I('~', 'D-04', 'Neutral translation text and release request', { ref: 'P-017', since: T('10:20') }),
       I('!', 'D-07', 'Release the recompute change, early exit and retry', { ref: 'P-034', wait: 'bob', since: T('10:50') }),
-      I('', 'D-05', 'Visits permission and deletion safeguard', { ref: 'P-019' }),
-      I('', 'D-06', 'Move switches out of .env into the caller code', { ref: 'P-009' }),
+      I('', 'D-05', 'Visits permission and deletion safeguard', { tag: 'SEC', ref: 'P-019' }),
+      I('', 'D-06', 'Move switches out of .env into the caller code', { tag: 'OPS', ref: 'P-009' }),
       I('!', 'D-08', 'Session revocation, six files', { ref: 'P-010', wait: 'D-04', since: T('10:20') }),
       I('x', 'D-03', 'Narrow the card query window, now live', { ref: 'P-033', done: T('11:15') })
     ]},
     { id: 'E', title: 'Inventories and data-flow surveys', updated: T('08:07'), items: [
       I('~', 'E-05', 'Survey the 62 entry points that are not callables (22 cron, 30 triggers, 10 HTTP)', { since: T('08:05') }),
-      I('', 'E-06', 'Count audit-log rows that contain sensitive fields', { ref: 'C-57' }),
+      I('', 'E-06', 'Count audit-log rows that contain sensitive fields', { tag: 'SEC', ref: 'C-57' }),
       I('x', 'E-04', 'Mobile app does not reference the safety deadlines field', { done: '2026-10-31T16:30' })
     ]}
   ];
 
   var PEOPLE = ['alice', 'bob', 'carol'];
+  // The tags declared in the demo workspace's config.json, in that order
+  var TAGS = [['SEC', 'Security review'], ['DOC', 'Documentation'], ['OPS', 'Operations']];
   var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var CLS = { '': 'todo', '~': 'doing', '!': 'block', 'x': 'done', '-': 'drop' };
   var CH = { '': ' ', '~': '~', '!': '!', 'x': 'x', '-': '-' };
@@ -448,6 +458,7 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
   }
   function fmtKv(it) {
     var o = [], k = it.kv;
+    if (k.tag) o.push(['tag', k.tag, '']);
     if (k.ref) o.push(['ref', k.ref, '']);
     if (k.wait) o.push(['wait', k.wait, 'wait']);
     if (k.since) o.push(['since', k.since, '']);
@@ -480,9 +491,25 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
   });
   LANES.forEach(buildLines);
 
+  // Tags: an item carries its own tags and those of its ancestors; the filter keeps the items that carry a selected one
+  function effTags(it) {
+    var t = [];
+    for (var c = it; c; c = INDEX[c.id] ? INDEX[c.id].parent : null) {
+      (c.kv.tag ? c.kv.tag.split(',') : []).forEach(function (x) { if (t.indexOf(x) < 0) t.push(x); });
+    }
+    return t;
+  }
+  function inScope(it) { return !state.tags.length || effTags(it).some(function (x) { return state.tags.indexOf(x) >= 0; }); }
+  function relevant(it) { return inScope(it) || it.kids.some(relevant); }
+  function laneShown(lane) {
+    var any = false;
+    walk(lane.items, 0, null, function (it) { if (inScope(it)) any = true; });
+    return any;
+  }
   function count(lane) {
     var c = { total: 0, closed: 0, block: 0, doing: 0, open: 0 };
     walk(lane.items, 0, null, function (it) {
+      if (!inScope(it)) return;
       c.total++;
       if (isClosed(it)) c.closed++; else c.open++;
       if (it.st === '!') c.block++;
@@ -535,7 +562,7 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
   function probFor(laneId, id) { return PROBS.filter(function (p) { return p.lane === laneId && p.id === id; })[0]; }
 
   /* ---------- UI state ---------- */
-  var state = { view: 'stack', lane: 'B', sel: 'B-12b', expanded: {}, ptab: 'prompt', plane: 'B' };
+  var state = { view: 'stack', lane: 'B', sel: 'B-12b', expanded: {}, tags: [], ptab: 'prompt', plane: 'B' };
   var $ = function (id) { return document.getElementById(id); };
 
   /* ---------- queue rows ---------- */
@@ -556,6 +583,7 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
     if (isClosed(it) && k.done) {
       c.push('<span class="chip done">' + (it.st === '-' ? 'dropped ' : '') + (sameDay(k.done) ? 'at ' + hhmm(Date.parse(k.done)) : dayMonth(Date.parse(k.done))) + '</span>');
     }
+    if (k.tag) k.tag.split(',').forEach(function (t) { c.push('<span class="chip tag">' + esc(t) + '</span>'); });
     if (k.ref) k.ref.split(',').forEach(function (r) { c.push('<span class="chip">' + esc(r) + '</span>'); });
     return c.length ? '<div class="meta">' + c.join('') + '</div>' : '';
   }
@@ -565,6 +593,7 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
       ICONS[cls] + '<span><span class="rid">' + (withLane ? '<span class="badge sm laneTag">' + lane.id + '</span>' : '') + esc(it.id) + '</span><span class="rt">' + esc(it.title) + '</span>' + metaChips(it, lane) + (extra || '') + '</span></button>';
   }
   function subtree(it, lane, depth) {
+    if (!relevant(it)) return '';
     var h = row(it, lane, depth);
     it.kids.forEach(function (k) { h += subtree(k, lane, depth + 1); });
     return h;
@@ -578,8 +607,8 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
     if (full) {
       lane.items.forEach(function (it) { h += subtree(it, lane, 0); });
     } else {
-      var doing = lane.items.filter(function (i) { return i.st === '~'; });
-      var next = lane.items.filter(function (i) { return i.st === ''; }).slice(0, 2);
+      var doing = lane.items.filter(function (i) { return i.st === '~' && relevant(i); });
+      var next = lane.items.filter(function (i) { return i.st === '' && inScope(i); }).slice(0, 2);
       if (doing.length) { h += '<div class="sub">In progress</div>'; doing.forEach(function (it) { h += subtree(it, lane, 0); }); }
       else h += '<div class="empty">Nothing in progress.</div>';
       if (next.length) { h += '<div class="sub">Up next</div>'; next.forEach(function (it) { h += row(it, lane, 0); }); }
@@ -590,14 +619,17 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
     h += '<span class="sp"></span><button type="button" class="tg" data-toggle="' + lane.id + '">' + (full ? 'Collapse' : 'Show all') + '</button></div></section>';
     return h;
   }
-  function stackView() { return LANES.map(laneBlock).join(''); }
+  function stackView() {
+    var shown = LANES.filter(laneShown);
+    return shown.length ? shown.map(laneBlock).join('') : '<div class="empty">Nothing carries the selected tags.</div>';
+  }
 
   function blockedView() {
     var groups = {}, order = [];
     function add(key, entry) { if (!groups[key]) { groups[key] = []; order.push(key); } groups[key].push(entry); }
     LANES.forEach(function (lane) {
       walk(lane.items, 0, null, function (it) {
-        if (it.st !== '!') return;
+        if (it.st !== '!' || !inScope(it)) return;
         var w = it.kv.wait;
         if (!w) add('__none', { it: it, lane: lane });
         else if (isId(w)) add('__dep', { it: it, lane: lane });
@@ -628,6 +660,7 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
     LANES.forEach(function (lane) {
       walk(lane.items, 0, null, function (it) {
         var k = it.kv, t;
+        if (!inScope(it)) return;
         if (it.st === 'x' && k.done && (t = Date.parse(k.done)) > lastVisit) ev.push({ t: t, kind: 'done', it: it, lane: lane });
         if (it.st === '-' && k.done && (t = Date.parse(k.done)) > lastVisit) ev.push({ t: t, kind: 'drop', it: it, lane: lane });
         if (it.st === '~' && k.since && (t = Date.parse(k.since)) > lastVisit) ev.push({ t: t, kind: 'start', it: it, lane: lane });
@@ -655,9 +688,21 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
     var tabs = [['stack', 'Stack', ''], ['blocked', 'Blocked', blocked ? '<span class="n warn">' + blocked + '</span>' : ''], ['news', 'What’s new', nNews ? '<span class="n new">' + nNews + '</span>' : '']];
     $('vtabs').innerHTML = tabs.map(function (t) { return '<button type="button" role="tab" class="vtab" aria-selected="' + (state.view === t[0]) + '" data-view="' + t[0] + '">' + t[1] + t[2] + '</button>'; }).join('');
   }
+  function tagBar() {
+    var n = {};
+    LANES.forEach(function (lane) { walk(lane.items, 0, null, function (it) { effTags(it).forEach(function (x) { n[x] = (n[x] || 0) + 1; }); }); });
+    var h = '<div class="tagbar" role="group" aria-label="Filter by tag"><span class="tagbar-t">Tags</span>';
+    TAGS.forEach(function (t) {
+      if (!n[t[0]] && state.tags.indexOf(t[0]) < 0) return;
+      var on = state.tags.indexOf(t[0]) >= 0;
+      h += '<button type="button" class="tagbtn" data-tag="' + t[0] + '" aria-pressed="' + on + '" title="' + esc(t[1]) + '">' + t[0] + '</button>';
+    });
+    if (state.tags.length) h += '<button type="button" class="tagbtn clear" data-tag-clear="1" title="Show everything again">Clear</button>';
+    return h + '</div>';
+  }
   function renderList() {
     var v = state.view;
-    $('list').innerHTML = v === 'stack' ? stackView() : v === 'blocked' ? blockedView() : newsView();
+    $('list').innerHTML = tagBar() + (v === 'stack' ? stackView() : v === 'blocked' ? blockedView() : newsView());
   }
   function renderEditor(scroll) {
     var lane = LANES.filter(function (l) { return l.id === state.lane; })[0];
@@ -709,6 +754,8 @@ Before you tell me a piece of work is done, mark it [x] and read the line back.<
   /* ---------- events ---------- */
   document.addEventListener('click', function (e) {
     var t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.tag) { var at = state.tags.indexOf(t.dataset.tag); if (at < 0) state.tags.push(t.dataset.tag); else state.tags.splice(at, 1); renderTabs(); renderList(); return; }
+    if (t.dataset.tagClear) { state.tags = []; renderTabs(); renderList(); return; }
     if (t.dataset.view) { state.view = t.dataset.view; renderTabs(); renderList(); return; }
     if (t.dataset.toggle) { state.expanded[t.dataset.toggle] = !state.expanded[t.dataset.toggle]; renderList(); return; }
     if (t.id === 'markSeen') { lastVisit = NOW; renderTabs(); renderList(); return; }

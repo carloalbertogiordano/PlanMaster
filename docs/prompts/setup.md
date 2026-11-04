@@ -27,11 +27,12 @@ PHASE 1, look around. Nothing is written.
 PHASE 2, plan the lanes.
 1. Propose how to split the work into lanes. A lane is one area of work that one chat owns, for example one area of the code, one workstream, or one of the chats the user already runs. Give each lane an ID (1 to 4 uppercase letters or digits, starting with a letter) and a precise title of 3 to 80 characters.
 2. Several documents may describe the same work. Merge them: one item per piece of work, keep the original identifiers in ref:, and say which items you merged and why.
-3. Propose the people who can be waited on (wait:), for example colleagues or teams that the documents mention, in lowercase without spaces. Say whether the settings in .planmaster/config.json should change; closed items stay visible {{DONE_WINDOW_DAYS}} days now.
-4. Show a table: source file and line, proposed ID, lane, state, title, ref, wait. List everything you were unsure about and everything you chose to leave out, with the reason. Ask the user to confirm or correct. Wait.
+3. Propose tags for the work. When the documents group it by codes or categories (a prefix, a heading, a label), each code becomes a tag, a short key such as SEC or OPS (a letter, then letters, digits, - or _, at most 20 characters) with a label of a few words. Tags cut across lanes, so the user can filter the queue by topic. Use as many as the work needs and no more.
+4. Propose the people who can be waited on (wait:), for example colleagues or teams that the documents mention, in lowercase without spaces. Say whether the settings in .planmaster/config.json should change; closed items stay visible {{DONE_WINDOW_DAYS}} days now.
+5. Show a table: source file and line, proposed ID, lane, state, title, tag, ref, wait, and a second table of the proposed tags with their labels. List everything you were unsure about and everything you chose to leave out, with the reason. Ask the user to confirm or correct. Wait.
 
 PHASE 3, write.
-1. Create or extend only the lane files and, if the user agreed, .planmaster/config.json. Follow .planmaster/FORMAT.md exactly: one item per line, two spaces per level, tokens at the end in the order ref, wait, since, done.
+1. Create or extend only the lane files and, if the user agreed, .planmaster/config.json, where the approved tags go under "tags" as "KEY": "short label" (add keys, keep everything else). Follow .planmaster/FORMAT.md exactly: one item per line, two spaces per level, tokens at the end in the order tag, ref, wait, since, done.
 2. Take every time from `date +%Y-%m-%dT%H:%M`. Items in progress or blocked get since: with the time of this migration. Include closed items only if they were closed in the last {{DONE_WINDOW_DAYS}} days, with done: from the source when it gives a time.
 3. If a lane file could not be read, repair it with the smallest possible edits and keep every item.
 4. Keep the order of the sources within each lane; it is the priority order.
